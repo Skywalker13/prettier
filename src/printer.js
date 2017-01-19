@@ -30,7 +30,7 @@ var isString = types.builtInTypes.string;
 var isObject = types.builtInTypes.object;
 
 function maybeAddParens(path, lines) {
-  return path.needsParens() ? concat([ "(", lines, ")" ]) : lines;
+  return path.needsParens() ? concat([ " (", lines, ")" ]) : lines;
 }
 
 function genericPrint(path, options, printPath) {
@@ -79,7 +79,7 @@ function genericPrint(path, options, printPath) {
   }
 
   if (needsParens) {
-    parts.unshift("(");
+    parts.unshift(" (");
   }
 
   parts.push(linesWithoutParens);
@@ -141,7 +141,7 @@ function genericPrintNoParens(path, options, print) {
       return concat([ path.call(print, "expression"), ";" ]);
     case // Babel extension.
     "ParenthesizedExpression":
-      return concat([ "(", path.call(print, "expression"), ")" ]);
+      return concat([ " (", path.call(print, "expression"), ")" ]);
     case "AssignmentExpression":
       return group(
         concat([
@@ -1442,7 +1442,7 @@ function genericPrintNoParens(path, options, print) {
     }
     case "TypeCastExpression":
       return concat([
-        "(",
+        " (",
         path.call(print, "expression"),
         path.call(print, "typeAnnotation"),
         ")"
@@ -1667,9 +1667,9 @@ function printArgumentsList(path, options, print) {
     const shouldBreak = printed.slice(0, -1).some(hasHardLine);
     return conditionalGroup(
       [
-        concat([ "(", join(concat([ ", " ]), printed), ")" ]),
+        concat([ " (", join(concat([ ", " ]), printed), ")" ]),
         concat([
-          "(",
+          " (",
           join(concat([ ",", line ]), printed.slice(0, -1)),
           printed.length > 1 ? ", " : "",
           group(util.getLast(printed), { shouldBreak: true }),
@@ -1677,7 +1677,7 @@ function printArgumentsList(path, options, print) {
         ]),
         group(
           concat([
-            "(",
+            " (",
             indent(
               options.tabWidth,
               concat([ line, join(concat([ ",", line ]), printed) ])
@@ -1695,7 +1695,7 @@ function printArgumentsList(path, options, print) {
 
   return multilineGroup(
     concat([
-      "(",
+      " (",
       indent(
         options.tabWidth,
         concat([ softline, join(concat([ ",", line ]), printed) ])
@@ -1738,7 +1738,7 @@ function printFunctionParams(path, print, options) {
   const canHaveTrailingComma = !(lastParam && lastParam.type === "RestElement") && !fun.rest;
 
   return concat([
-    "(",
+    " (",
     indent(
       options.tabWidth,
       concat([ softline, join(concat([ ",", line ]), printed) ])
@@ -2224,7 +2224,7 @@ function maybeWrapJSXElementInParens(path, elem, options) {
 
   return multilineGroup(
     concat([
-      ifBreak("("),
+      ifBreak(" ("),
       indent(options.tabWidth, concat([ softline, elem ])),
       softline,
       ifBreak(")")
