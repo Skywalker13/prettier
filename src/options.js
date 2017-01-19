@@ -8,7 +8,9 @@ var defaults = {
   // Controls the printing of trailing commas wherever possible
   trailingComma: true,
   // Controls the printing of spaces inside array and objects
-  bracketSpacing: false
+  bracketSpacing: false,
+  // Add space before all parentheses
+  parentheseSpace: true
 };
 
 // Copy options and fill in default values.
