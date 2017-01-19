@@ -4,11 +4,11 @@ var defaults = {
   // Fit code within this line limit
   printWidth: 80,
   // If true, will use single instead of double quotes
-  singleQuote: false,
+  singleQuote: true,
   // Controls the printing of trailing commas wherever possible
-  trailingComma: false,
+  trailingComma: true,
   // Controls the printing of spaces inside array and objects
-  bracketSpacing: true
+  bracketSpacing: false
 };
 
 // Copy options and fill in default values.
