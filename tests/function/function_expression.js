@@ -4,4 +4,8 @@ export default (function() {})();
 (function() {})()``;
 (function() {})``;
 new (function() {});
-(function() {})
+(function() {});
+a = function f() {} || b;
+(function() {} && a);
+a + function() {};
+new function() {};

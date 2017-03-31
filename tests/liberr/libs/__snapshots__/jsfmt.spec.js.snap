@@ -1,8 +1,0 @@
-exports[`test type_error.js 1`] = `
-"// @flow
-declare function foo(x: number): Array;
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// @flow
-declare function foo(x: number): Array;
-"
-`;

@@ -1,128 +1,134 @@
-exports[`test enum.js 1`] = `
-"var APIKeys = {
-    AGE: \'age\',
-    NAME: \'name\',
-};
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
-module.exports = APIKeys;
+exports[`number.js 1`] = `
+"// parentheses around numeric literal should be preserved
+function test5(): string {
+  return (100).toString();
+}
+
+0
+1
+
+0.1
+1.1
+
+.1
+1.
+
+0b1
+0B1
+0o1
+0O1
+0x1
+0X1
+
+0x123abcdef456ABCDEF
+0X123abcdef456ABCDEF
+0xdeadbeef;
+
+0b111000
+0b000111
+0B111000
+0B000111
+0o111000
+0o000111
+0O111000
+0O000111
+0x111000
+0x000111
+0X111000
+0X000111
+
+1e1
+1e+1
+1e-1
+1.e1
+.1e1
+1.1e1
+1.1e0010
+.1e+0010
+.1e-0010
+
+1E1
+1E+1
+1E-1
+1.E1
+.1E1
+1.1E1
+1.1E0010
+.1E+0010
+.1E-0010
+
+0.5e0
+0.5e00
+0.5e+0
+0.5e+00
+0.5e-0
+0.5e-00
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var APIKeys = { AGE: \"age\", NAME: \"name\" };
-
-module.exports = APIKeys;
-"
-`;
-
-exports[`test enum_client.js 1`] = `
-"var APIKeys = require(\'./enum\');
-// object that maps \"AGE\" to \"age\", \"NAME\" to \"name\"
-
-function foo(x: $Keys<typeof APIKeys>) { }
-foo(\"AGE\");
-foo(\"LOCATION\"); // error
-
-function bar(x: $Keys<{age: number}>) { }
-bar(APIKeys.AGE); // not an error: APIKeys.AGE = \"age\"
-bar(APIKeys.NAME); // error: since \"NAME\" is not in the smaller enum
-
-var object = {};
-object[APIKeys.AGE] = 123; // i.e., object.age = 123
-object[APIKeys.NAME] = \"FOO\"; // i.e., object.name = \"FOO\"
-
-var age:number = object[APIKeys.AGE];
-var name:number = object[APIKeys.NAME]; // error: object.name is a string
-
-var indices = { red: 0, green: 1, blue: 2 };
-var tuple = [42, \"hello\", false];
-var red:string = tuple[indices.red]; // error: tuple[0] is a number
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var APIKeys = require(\"./enum\");
-// object that maps \"AGE\" to \"age\", \"NAME\" to \"name\"
-function foo(x: $Keys<typeof APIKeys>) {
-}
-foo(\"AGE\");
-foo(\"LOCATION\");
-
-// error
-function bar(x: $Keys<{ age: number }>) {
-}
-bar(APIKeys.AGE);
-// not an error: APIKeys.AGE = \"age\"
-bar(APIKeys.NAME);
-
-// error: since \"NAME\" is not in the smaller enum
-var object = {};
-object[APIKeys.AGE] = 123;
-// i.e., object.age = 123
-object[APIKeys.NAME] = \"FOO\";
-
-// i.e., object.name = \"FOO\"
-var age: number = object[APIKeys.AGE];
-var name: number = object[APIKeys.NAME];
-
-// error: object.name is a string
-var indices = { red: 0, green: 1, blue: 2 };
-var tuple = [ 42, \"hello\", false ];
-var red: string = tuple[indices.red]; // error: tuple[0] is a number
-"
-`;
-
-exports[`test number.js 1`] = `
-"function test1(x: number): number {
-  return -x;
-}
-
-function test2(x: string): number {
-  return -x;
-}
-
-// sanity checks to make sure merging envs doesn\'t keep creating new NumT\'s
-// because of the UnaryMinusT\'s, causing nontermination
-function test3(x: number, flip_times: number): number {
-  for (var i = 0; i < flip_times; i++) {
-    x = -x;
-  }
-  return x;
-}
-function test4(flip_times: number): number {
-  var x = 1;
-  for (var i = 0; i < flip_times; i++) {
-    x = -x;
-  }
-  return x;
-}
-
 // parentheses around numeric literal should be preserved
 function test5(): string {
   return (100).toString();
 }
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function test1(x: number): number {
-  return -x;
-}
 
-function test2(x: string): number {
-  return -x;
-}
+0;
+1;
 
-// sanity checks to make sure merging envs doesn\'t keep creating new NumT\'s
-// because of the UnaryMinusT\'s, causing nontermination
-function test3(x: number, flip_times: number): number {
-  for (var i = 0; i < flip_times; i++) {
-    x = -x;
-  }
-  return x;
-}
-function test4(flip_times: number): number {
-  var x = 1;
-  for (var i = 0; i < flip_times; i++) {
-    x = -x;
-  }
-  return x;
-}
+0.1;
+1.1;
 
-// parentheses around numeric literal should be preserved
-function test5(): string {
-  return (100).toString();
-}
+0.1;
+1;
+
+0b1;
+0b1;
+0o1;
+0o1;
+0x1;
+0x1;
+
+0x123abcdef456abcdef;
+0x123abcdef456abcdef;
+0xdeadbeef;
+
+0b111000;
+0b000111;
+0b111000;
+0b000111;
+0o111000;
+0o000111;
+0o111000;
+0o000111;
+0x111000;
+0x000111;
+0x111000;
+0x000111;
+
+1e1;
+1e1;
+1e-1;
+1e1;
+0.1e1;
+1.1e1;
+1.1e10;
+0.1e10;
+0.1e-10;
+
+1e1;
+1e1;
+1e-1;
+1e1;
+0.1e1;
+1.1e1;
+1.1e10;
+0.1e10;
+0.1e-10;
+
+0.5;
+0.5;
+0.5;
+0.5;
+0.5;
+0.5;
 "
 `;

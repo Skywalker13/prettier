@@ -1,27 +1,8 @@
-exports[`test P.js 1`] = `
-"module.exports = require(\'M\');
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-module.exports = require(\"M\");
-"
-`;
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`test test.js 1`] = `
-"var M = require(\'M\');
-var N = require(\'N\');
-N.x = M(N.x);
-var P = require(\'./P\'); // implementation of P redirects to module M
-N.y = P(N.y);
-var Q = require(\'Q\'); // declaration of Q redirects to module M
-N.z = Q(N.z);
+exports[`body.js 1`] = `
+"export default (class {}[1] = 1);
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var M = require(\"M\");
-var N = require(\"N\");
-N.x = M(N.x);
-var P = require(\"./P\");
-// implementation of P redirects to module M
-N.y = P(N.y);
-var Q = require(\"Q\");
-// declaration of Q redirects to module M
-N.z = Q(N.z);
+export default (class {}[1] = 1);
 "
 `;

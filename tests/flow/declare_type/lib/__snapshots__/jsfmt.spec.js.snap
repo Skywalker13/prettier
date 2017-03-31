@@ -1,0 +1,69 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`declare_module_type_alias.js 1`] = `
+"/**
+ * @flow
+ */
+
+// TODO: adding an empty line should not be dropped.
+
+declare module ModuleAliasFoo {
+    declare type baz = number;
+    declare type toz = string;
+    declare function foo(bar : baz) : toz;
+}
+declare type Foo = string;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/**
+ * @flow
+ */
+
+// TODO: adding an empty line should not be dropped.
+
+declare module ModuleAliasFoo {
+  declare type baz = number;
+  declare type toz = string;
+  declare function foo(bar: baz): toz;
+}
+declare type Foo = string;
+"
+`;
+
+exports[`declare_type_exports.js 1`] = `
+"/* @flow */
+
+declare module 'foo' {
+    declare class A {
+        toz : number
+    }
+
+    declare var n : string;
+
+    declare type Foo = typeof n;
+    declare type Bar = A;
+    declare type Id<T> = T;
+
+    declare var exports : {
+        (a : number, b : number) : number
+    };
+}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/* @flow */
+
+declare module \\"foo\\" {
+  declare class A {
+    toz: number
+  }
+
+  declare var n: string;
+
+  declare type Foo = typeof n;
+  declare type Bar = A;
+  declare type Id<T> = T;
+
+  declare var exports: {
+    (a: number, b: number): number
+  };
+}
+"
+`;

@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`test.js 1`] = `
+"type Foo = {
+  field: number,
+}
+
+var x: {field?: number} = {};
+var y: $Shape<Foo> = x;
+(y.field: number)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+type Foo = {
+  field: number
+};
+
+var x: { field?: number } = {};
+var y: $Shape<Foo> = x;
+(y.field: number);
+"
+`;

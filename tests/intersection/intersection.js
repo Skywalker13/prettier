@@ -1,7 +1,9 @@
-function foo(x: $All<Error,{type:number}>): number {
-    return x.type;
-}
+export type ReallyBigSocketServer = ReallyBigSocketServerInterface & ReallyBigSocketServerStatics;
 
-function bar(x: Error & {type:number}): number {
-    return x.type;
-}
+type Props = {
+  focusedChildren?: React.Children,
+  onClick: () => void,
+  overlayChildren?: React.Children,
+  style?: Object,
+  thumbnail: ImageSource,
+} & FooterProps;

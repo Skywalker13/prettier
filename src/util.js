@@ -1,34 +1,11 @@
 "use strict";
-var assert = require("assert");
-var types = require("ast-types");
-var getFieldValue = types.getFieldValue;
-var n = types.namedTypes;
-var hasOwn = Object.prototype.hasOwnProperty;
-var util = exports;
 
-function getUnionOfKeys() {
-  var result = {};
-  var argc = arguments.length;
-  for (var i = 0; i < argc; ++i) {
-    var keys = Object.keys(arguments[i]);
-    var keyCount = keys.length;
-    for (var j = 0; j < keyCount; ++j) {
-      result[keys[j]] = true;
-    }
-  }
-  return result;
-}
-util.getUnionOfKeys = getUnionOfKeys;
+var types = require("ast-types");
+var n = types.namedTypes;
 
 function comparePos(pos1, pos2) {
   return pos1.line - pos2.line || pos1.column - pos2.column;
 }
-util.comparePos = comparePos;
-
-function copyPos(pos) {
-  return { line: pos.line, column: pos.column };
-}
-util.copyPos = copyPos;
 
 function expandLoc(parentNode, childNode) {
   if (locStart(childNode) - locStart(parentNode) < 0) {
@@ -40,14 +17,14 @@ function expandLoc(parentNode, childNode) {
   }
 }
 
-util.fixFaultyLocations = function(node, text) {
+function fixFaultyLocations(node, text) {
   if (node.decorators) {
     // Expand the loc of the node responsible for printing the decorators
     // (here, the decorated node) so that it includes node.decorators.
     node.decorators.forEach(function(decorator) {
       expandLoc(node, decorator);
     });
-  } else if (node.declaration && util.isExportDeclaration(node)) {
+  } else if (node.declaration && isExportDeclaration(node)) {
     // Expand the loc of the node responsible for printing the decorators
     // (here, the export declaration) so that it includes node.decorators.
     var decorators = node.declaration.decorators;
@@ -57,8 +34,8 @@ util.fixFaultyLocations = function(node, text) {
       });
     }
   } else if (
-    n.MethodDefinition && n.MethodDefinition.check(node) ||
-      n.Property.check(node) && (node.method || node.shorthand)
+    (n.MethodDefinition && n.MethodDefinition.check(node)) ||
+    (n.Property.check(node) && (node.method || node.shorthand))
   ) {
     if (n.FunctionExpression.check(node.value)) {
       // FunctionExpression method values should be anonymous,
@@ -75,10 +52,11 @@ util.fixFaultyLocations = function(node, text) {
       }
     }
   }
-};
+}
 
-util.isExportDeclaration = function(node) {
-  if (node) switch (node.type) {
+function isExportDeclaration(node) {
+  if (node)
+    switch (node.type) {
       case "ExportDeclaration":
       case "ExportDefaultDeclaration":
       case "ExportDefaultSpecifier":
@@ -89,93 +67,170 @@ util.isExportDeclaration = function(node) {
     }
 
   return false;
-};
+}
 
-util.getParentExportDeclaration = function(path) {
+function getParentExportDeclaration(path) {
   var parentNode = path.getParentNode();
-  if (
-    path.getName() === "declaration" && util.isExportDeclaration(parentNode)
-  ) {
+  if (path.getName() === "declaration" && isExportDeclaration(parentNode)) {
     return parentNode;
   }
 
   return null;
-};
+}
 
-util.isTrailingCommaEnabled = function(options, context) {
-  var trailingComma = options.trailingComma;
-  if (typeof trailingComma === "object") {
-    return !!trailingComma[context];
+function getPenultimate(arr) {
+  if (arr.length > 1) {
+    return arr[arr.length - 2];
   }
-  return !!trailingComma;
-};
+  return null;
+}
 
-util.getLast = function(arr) {
+function getLast(arr) {
   if (arr.length > 0) {
     return arr[arr.length - 1];
   }
   return null;
-};
+}
 
-function skipNewLineForward(text, index) {
-  // What the "end" location points to is not consistent in parsers.
-  // For some statement/expressions, it's the character immediately
-  // afterward. For others, it's the last character in it. We need to
-  // scan until we hit a newline in order to skip it.
-  while (index < text.length) {
+function skip(chars) {
+  return (text, index, opts) => {
+    const backwards = opts && opts.backwards;
+
+    // Allow `skip` functions to be threaded together without having
+    // to check for failures (did someone say monads?).
+    if (index === false) {
+      return false;
+    }
+
+    const length = text.length;
+    let cursor = index;
+    while (cursor >= 0 && cursor < length) {
+      const c = text.charAt(cursor);
+      if (chars instanceof RegExp) {
+        if (!chars.test(c)) {
+          return cursor;
+        }
+      } else if (chars.indexOf(c) === -1) {
+        return cursor;
+      }
+
+      backwards ? cursor-- : cursor++;
+    }
+
+    if (cursor === -1 || cursor === length) {
+      // If we reached the beginning or end of the file, return the
+      // out-of-bounds cursor. It's up to the caller to handle this
+      // correctly. We don't want to indicate `false` though if it
+      // actually skipped valid characters.
+      return cursor;
+    }
+    return false;
+  };
+}
+
+const skipWhitespace = skip(/\s/);
+const skipSpaces = skip(" \t");
+const skipToLineEnd = skip(",; \t");
+const skipEverythingButNewLine = skip(/[^\r\n]/);
+
+function skipInlineComment(text, index) {
+  if (index === false) {
+    return false;
+  }
+
+  if (text.charAt(index) === "/" && text.charAt(index + 1) === "*") {
+    for (var i = index + 2; i < text.length; ++i) {
+      if (text.charAt(i) === "*" && text.charAt(i + 1) === "/") {
+        return i + 2;
+      }
+    }
+  }
+  return index;
+}
+
+function skipTrailingComment(text, index) {
+  if (index === false) {
+    return false;
+  }
+
+  if (text.charAt(index) === "/" && text.charAt(index + 1) === "/") {
+    return skipEverythingButNewLine(text, index);
+  }
+  return index;
+}
+
+// This one doesn't use the above helper function because it wants to
+// test \r\n in order and `skip` doesn't support ordering and we only
+// want to skip one newline. It's simple to implement.
+function skipNewline(text, index, opts) {
+  const backwards = opts && opts.backwards;
+  if (index === false) {
+    return false;
+  } else if (backwards) {
+    if (text.charAt(index) === "\n") {
+      return index - 1;
+    }
+    if (text.charAt(index - 1) === "\r" && text.charAt(index) === "\n") {
+      return index - 2;
+    }
+  } else {
     if (text.charAt(index) === "\n") {
       return index + 1;
     }
     if (text.charAt(index) === "\r" && text.charAt(index + 1) === "\n") {
       return index + 2;
     }
-    index++;
   }
+
   return index;
 }
 
-function _findNewline(text, index, backwards) {
-  const length = text.length;
-  let cursor = backwards ? index - 1 : skipNewLineForward(text, index);
-  // Look forward and see if there is a newline after/before this code
-  // by scanning up/back to the next non-indentation character.
-  while (cursor > 0 && cursor < length) {
-    const c = text.charAt(cursor);
-    // Skip any indentation characters
-    if (c !== " " && c !== "\t") {
-      // Check if the next non-indentation character is a newline or
-      // not.
-      return c === "\n" || c === "\r";
+function hasNewline(text, index, opts) {
+  opts = opts || {};
+  const idx = skipSpaces(text, opts.backwards ? index - 1 : index, opts);
+  const idx2 = skipNewline(text, idx, opts);
+  return idx !== idx2;
+}
+
+function hasNewlineInRange(text, start, end) {
+  for (var i = start; i < end; ++i) {
+    if (text.charAt(i) === "\n") {
+      return true;
     }
-    backwards ? cursor-- : cursor++;
   }
   return false;
 }
 
-util.newlineExistsBefore = function(text, index) {
-  return _findNewline(text, index, true);
-};
-
-util.newlineExistsAfter = function(text, index) {
-  return _findNewline(text, index);
-};
-
-function skipSpaces(text, index, backwards) {
-  const length = text.length;
-  let cursor = backwards ? index - 1 : index;
-  // Look forward and see if there is a newline after/before this code
-  // by scanning up/back to the next non-indentation character.
-  while (cursor > 0 && cursor < length) {
-    const c = text.charAt(cursor);
-    // Skip any whitespace chars
-    if (!c.match(/\S/)) {
-      return cursor;
-    }
-    backwards ? cursor-- : cursor++;
-  }
-  return false;
+// Note: this function doesn't ignore leading comments unlike isNextLineEmpty
+function isPreviousLineEmpty(text, node) {
+  let idx = locStart(node) - 1;
+  idx = skipSpaces(text, idx, { backwards: true });
+  idx = skipNewline(text, idx, { backwards: true });
+  idx = skipSpaces(text, idx, { backwards: true });
+  const idx2 = skipNewline(text, idx, { backwards: true });
+  return idx !== idx2;
 }
-util.skipSpaces = skipSpaces;
+
+function isNextLineEmpty(text, node) {
+  let oldIdx = null;
+  let idx = locEnd(node);
+  idx = skipToLineEnd(text, idx);
+  while (idx !== oldIdx) {
+    // We need to skip all the potential trailing inline comments
+    oldIdx = idx;
+    idx = skipInlineComment(text, idx);
+    idx = skipSpaces(text, idx);
+  }
+  idx = skipTrailingComment(text, idx);
+  idx = skipNewline(text, idx);
+  return hasNewline(text, idx);
+}
+
+function hasSpaces(text, index, opts) {
+  opts = opts || {};
+  const idx = skipSpaces(text, opts.backwards ? index - 1 : index, opts);
+  return idx !== index;
+}
 
 function locStart(node) {
   if (node.range) {
@@ -183,7 +238,6 @@ function locStart(node) {
   }
   return node.start;
 }
-util.locStart = locStart;
 
 function locEnd(node) {
   if (node.range) {
@@ -191,7 +245,6 @@ function locEnd(node) {
   }
   return node.end;
 }
-util.locEnd = locEnd;
 
 function setLocStart(node, index) {
   if (node.range) {
@@ -200,7 +253,6 @@ function setLocStart(node, index) {
     node.start = index;
   }
 }
-util.setLocStart = setLocStart;
 
 function setLocEnd(node, index) {
   if (node.range) {
@@ -209,7 +261,6 @@ function setLocEnd(node, index) {
     node.end = index;
   }
 }
-util.setLocEnd = setLocEnd;
 
 // http://stackoverflow.com/a/7124052
 function htmlEscapeInsideDoubleQuote(str) {
@@ -220,7 +271,6 @@ function htmlEscapeInsideDoubleQuote(str) {
   //    .replace(/</g, '&lt;')
   //    .replace(/>/g, '&gt;');
 }
-util.htmlEscapeInsideDoubleQuote = htmlEscapeInsideDoubleQuote;
 
 // http://stackoverflow.com/a/7124052
 function htmlEscapeInsideAngleBracket(str) {
@@ -231,26 +281,50 @@ function htmlEscapeInsideAngleBracket(str) {
   //    .replace(/"/g, '&quot;')
   //    .replace(/'/g, '&#39;')
 }
-util.htmlEscapeInsideAngleBracket = htmlEscapeInsideAngleBracket;
 
 var PRECEDENCE = {};
 [
-  [ "||" ],
-  [ "&&" ],
-  [ "|" ],
-  [ "^" ],
-  [ "&" ],
-  [ "==", "===", "!=", "!==" ],
-  [ "<", ">", "<=", ">=", "in", "instanceof" ],
-  [ ">>", "<<", ">>>" ],
-  [ "+", "-" ],
-  [ "*", "/", "%", "**" ]
+  ["||"],
+  ["&&"],
+  ["|"],
+  ["^"],
+  ["&"],
+  ["==", "===", "!=", "!=="],
+  ["<", ">", "<=", ">=", "in", "instanceof"],
+  [">>", "<<", ">>>"],
+  ["+", "-"],
+  ["*", "/", "%"],
+  ["**"]
 ].forEach(function(tier, i) {
   tier.forEach(function(op) {
     PRECEDENCE[op] = i;
   });
 });
 
-util.getPrecedence = function(op) {
+function getPrecedence(op) {
   return PRECEDENCE[op];
+}
+
+module.exports = {
+  comparePos,
+  getPrecedence,
+  fixFaultyLocations,
+  isExportDeclaration,
+  getParentExportDeclaration,
+  getPenultimate,
+  getLast,
+  skipWhitespace,
+  skipSpaces,
+  skipNewline,
+  isNextLineEmpty,
+  isPreviousLineEmpty,
+  hasNewline,
+  hasNewlineInRange,
+  hasSpaces,
+  locStart,
+  locEnd,
+  setLocStart,
+  setLocEnd,
+  htmlEscapeInsideDoubleQuote,
+  htmlEscapeInsideAngleBracket
 };

@@ -1,40 +1,67 @@
 "use strict";
 
-function iterDoc(topDoc, func) {
-  const docs = [ topDoc ];
-  while (docs.length !== 0) {
-    const doc = docs.pop();
-    let res = undefined;
+function traverseDoc(doc, onEnter, onExit) {
+  var hasStopped = false;
+  function traverseDocRec(doc) {
+    if (onEnter) {
+      hasStopped = hasStopped || onEnter(doc) === false;
+    }
+    if (hasStopped) {
+      return;
+    }
 
-    if (typeof doc === "string") {
-      const res = func("string", doc);
-
-      if (res) {
-        return res;
+    if (doc.type === "concat") {
+      for (var i = 0; i < doc.parts.length; i++) {
+        traverseDocRec(doc.parts[i]);
       }
-    } else {
-      const res = func(doc.type, doc);
-
-      if (res) {
-        return res;
+    } else if (doc.type === "if-break") {
+      if (doc.breakContents) {
+        traverseDocRec(doc.breakContents);
       }
-
-      if (doc.type === "concat") {
-        for (var i = doc.parts.length - 1; i >= 0; i--) {
-          docs.push(doc.parts[i]);
-        }
-      } else if (doc.type === "if-break") {
-        if (doc.breakContents) {
-          docs.push(doc.breakContents);
-        }
-        if (doc.flatContents) {
-          docs.push(doc.flatContents);
-        }
-      } else if (doc.type !== "line") {
-        docs.push(doc.contents);
+      if (doc.flatContents) {
+        traverseDocRec(doc.flatContents);
       }
+    } else if (doc.contents) {
+      traverseDocRec(doc.contents);
+    }
+
+    if (onExit) {
+      onExit(doc);
     }
   }
+
+  traverseDocRec(doc);
+}
+
+function mapDoc(doc, func) {
+  doc = func(doc);
+
+  if (doc.type === "concat") {
+    return Object.assign({}, doc, {
+      parts: doc.parts.map(d => mapDoc(d, func))
+    });
+  } else if (doc.type === "if-break") {
+    return Object.assign({}, doc, {
+      breakContents: doc.breakContents && mapDoc(doc.breakContents, func),
+      flatContents: doc.flatContents && mapDoc(doc.flatContents, func)
+    });
+  } else if (doc.contents) {
+    return Object.assign({}, doc, { contents: mapDoc(doc.contents, func) });
+  } else {
+    return doc;
+  }
+}
+
+function findInDoc(doc, fn, defaultValue) {
+  var result = defaultValue;
+  traverseDoc(doc, function(doc) {
+    var maybeResult = fn(doc);
+    if (maybeResult !== undefined) {
+      result = maybeResult;
+      return false;
+    }
+  });
+  return result;
 }
 
 function isEmpty(n) {
@@ -42,30 +69,91 @@ function isEmpty(n) {
 }
 
 function getFirstString(doc) {
-  return iterDoc(doc, (type, doc) => {
-    if (type === "string" && doc.trim().length !== 0) {
-      return doc;
-    }
-  });
+  return findInDoc(
+    doc,
+    doc => {
+      if (typeof doc === "string" && doc.trim().length !== 0) {
+        return doc;
+      }
+    },
+    null
+  );
 }
 
-function hasHardLine(doc) {
-  // TODO: If we hit a group, check if it's already marked as a
-  // multiline group because they should be marked bottom-up.
-  return !!iterDoc(doc, (type, doc) => {
-    switch (type) {
-      case "line":
-        if (doc.hard) {
-          return true;
-        }
+function isLineNext(doc) {
+  return findInDoc(
+    doc,
+    doc => {
+      if (typeof doc === "string") {
+        return false;
+      }
+      if (doc.type === "line") {
+        return true;
+      }
+    },
+    false
+  );
+}
 
-        break;
+function willBreak(doc) {
+  return findInDoc(
+    doc,
+    doc => {
+      if (doc.type === "group" && doc.break) {
+        return true;
+      }
+      if (doc.type === "line" && doc.hard) {
+        return true;
+      }
+      if (doc.type === "break-parent") {
+        return true;
+      }
+    },
+    false
+  );
+}
+
+function breakParentGroup(groupStack) {
+  if (groupStack.length > 0) {
+    const parentGroup = groupStack[groupStack.length - 1];
+    // Breaks are not propagated through conditional groups because
+    // the user is expected to manually handle what breaks.
+    if (!parentGroup.expandedStates) {
+      parentGroup.break = true;
     }
-  });
+  }
+  return null;
+}
+
+function propagateBreaks(doc) {
+  const groupStack = [];
+  traverseDoc(
+    doc,
+    doc => {
+      if (doc.type === "break-parent") {
+        breakParentGroup(groupStack);
+      }
+      if (doc.type === "group") {
+        groupStack.push(doc);
+      }
+    },
+    doc => {
+      if (doc.type === "group") {
+        const group = groupStack.pop();
+        if (group.break) {
+          breakParentGroup(groupStack);
+        }
+      }
+    }
+  );
 }
 
 module.exports = {
   isEmpty,
   getFirstString,
-  hasHardLine,
+  willBreak,
+  isLineNext,
+  traverseDoc,
+  mapDoc,
+  propagateBreaks
 };

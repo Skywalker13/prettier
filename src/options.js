@@ -1,25 +1,55 @@
+"use strict";
+
+var validate = require("jest-validate").validate;
+var deprecatedConfig = require("./deprecated");
+
 var defaults = {
-  // Number of spaces the pretty-printer should use per tab
   tabWidth: 2,
-  // Fit code within this line limit
   printWidth: 80,
-  // If true, will use single instead of double quotes
   singleQuote: true,
-  // Controls the printing of trailing commas wherever possible
-  trailingComma: true,
-  // Controls the printing of spaces inside array and objects
+  trailingComma: "es5",
   bracketSpacing: false,
-  // Add space before all parentheses
-  parentheseSpace: true
+  jsxBracketSameLine: false,
+  parentheseSpace: true,
+  parser: "babylon"
 };
 
+var exampleConfig = Object.assign({}, defaults, {
+  filename: "testFilename",
+  printWidth: 80,
+  originalText: "text"
+});
+
 // Copy options and fill in default values.
-exports.normalize = function(options) {
+function normalize(options) {
   const normalized = Object.assign({}, options || {});
+
+  if (typeof normalized.trailingComma === "boolean") {
+    // Support a deprecated boolean type for the trailing comma config
+    // for a few versions. This code can be removed later.
+    normalized.trailingComma = "es5";
+
+    console.warn(
+      "Warning: `trailingComma` without any argument is deprecated. " +
+        'Specify "none", "es5", or "all".'
+    );
+  }
+
+  validate(normalized, { exampleConfig, deprecatedConfig });
+
+  // For backward compatibility. Deprecated in 0.0.10
+  if ("useFlowParser" in normalized) {
+    normalized.parser = normalized.useFlowParser ? "flow" : "babylon";
+    delete normalized.useFlowParser;
+  }
+
   Object.keys(defaults).forEach(k => {
     if (normalized[k] == null) {
       normalized[k] = defaults[k];
     }
   });
+
   return normalized;
-};
+}
+
+module.exports = { normalize };

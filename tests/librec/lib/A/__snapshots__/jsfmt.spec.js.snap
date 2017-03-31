@@ -1,6 +1,0 @@
-exports[`test libA.js 1`] = `
-"declare function foo(x: number): void;
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-declare function foo(x: number): void;
-"
-`;

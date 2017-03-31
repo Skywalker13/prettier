@@ -1,19 +1,27 @@
 "use strict";
 
-const assert = require("assert");
 const utils = require("./doc-utils");
-const hasHardLine = utils.hasHardLine;
+const willBreak = utils.willBreak;
 
 function assertDoc(val) {
-  assert(
-    typeof val === "string" || val != null && typeof val.type === "string",
-    "Value is a valid document"
-  );
+  if (
+    !(typeof val === "string" || (val != null && typeof val.type === "string"))
+  ) {
+    throw new Error(
+      "Value " + JSON.stringify(val) + " is not a valid document"
+    );
+  }
 }
 
 function concat(parts) {
   parts.forEach(assertDoc);
 
+  // We cannot do this until we change `printJSXElement` to not
+  // access the internals of a document directly.
+  // if(parts.length === 1) {
+  //   // If it's a single document, no need to concat it.
+  //   return parts[0];
+  // }
   return { type: "concat", parts };
 }
 
@@ -36,13 +44,6 @@ function group(contents, opts) {
   };
 }
 
-function multilineGroup(contents, opts) {
-  return group(
-    contents,
-    Object.assign(opts || {}, { shouldBreak: hasHardLine(contents) })
-  );
-}
-
 function conditionalGroup(states, opts) {
   return group(
     states[0],
@@ -61,10 +62,20 @@ function ifBreak(breakContents, flatContents) {
   return { type: "if-break", breakContents, flatContents };
 }
 
+function lineSuffix(contents) {
+  assertDoc(contents);
+  return { type: "line-suffix", contents };
+}
+
+const lineSuffixBoundary = { type: "line-suffix-boundary" };
+const breakParent = { type: "break-parent" };
 const line = { type: "line" };
 const softline = { type: "line", soft: true };
-const hardline = { type: "line", hard: true };
-const literalline = { type: "line", hard: true, literal: true };
+const hardline = concat([{ type: "line", hard: true }, breakParent]);
+const literalline = concat([
+  { type: "line", hard: true, literal: true },
+  breakParent
+]);
 
 function join(sep, arr) {
   var res = [];
@@ -88,8 +99,10 @@ module.exports = {
   hardline,
   literalline,
   group,
-  multilineGroup,
   conditionalGroup,
+  lineSuffix,
+  lineSuffixBoundary,
+  breakParent,
   ifBreak,
-  indent,
+  indent
 };

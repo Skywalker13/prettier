@@ -1,53 +1,91 @@
-exports[`test conditional.js 1`] = `
-"/* @flow */
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
-function a(): number {
-  var x: ?string = null;
-  return x ? 1 : 0;
-}
+exports[`comments.js 1`] = `
+"var inspect = 4 === util.inspect.length
+  ? // node <= 0.8.x
+    (function(v, colors) {
+      return util.inspect(v, void 0, void 0, colors);
+    })
+  : // node > 0.8.x
+    (function(v, colors) {
+      return util.inspect(v, { colors: colors });
+    });
 
-function b(): number {
-    var x: ?number = null;
-    return x != null ? x : 0;
-}
+var inspect = 4 === util.inspect.length
+  ? // node <= 0.8.x
+    (function(v, colors) {
+      return util.inspect(v, void 0, void 0, colors);
+    })
+  : // node > 0.8.x
+    (function(v, colors) {
+      return util.inspect(v, { colors: colors });
+    });
 
-function c(): number {
-  // equivalent to \`return (x && 1) || 0\`
-  var x = false;
-  var temp = (x ? 1 : x);
-  return temp ? temp : 0;
-}
+const extractTextPluginOptions = shouldUseRelativeAssetPaths
+  // Making sure that the publicPath goes back to to build folder.
+  ? { publicPath: Array(cssFilename.split('/').length).join('../') } :
+  {};
 
-function d(): string { // expected \`: number | boolean\`
-  // equivalent to \`return x != null && x\`
-  var x: ?number = null;
-  return (x != null) ? x : (x != null);
-}
+const extractTextPluginOptions = shouldUseRelativeAssetPaths
+  ? // Making sure that the publicPath goes back to to build folder.
+    { publicPath: Array(cssFilename.split(\\"/\\").length).join(\\"../\\") }
+  : {};
+
+const extractTextPluginOptions = shouldUseRelativeAssetPaths // Making sure that the publicPath goes back to to build folder.
+  ? { publicPath: Array(cssFilename.split(\\"/\\").length).join(\\"../\\") }
+  : {};
+
+const { configureStore } = process.env.NODE_ENV === \\"production\\"
+  ? require(\\"./configureProdStore\\") // a
+  : require(\\"./configureDevStore\\"); // b
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/* @flow */
+var inspect = 4 === util.inspect.length
+  ? // node <= 0.8.x
+    function(v, colors) {
+      return util.inspect(v, void 0, void 0, colors);
+    }
+  : // node > 0.8.x
+    function(v, colors) {
+      return util.inspect(v, { colors: colors });
+    };
 
-function a(): number {
-  var x: ?string = null;
-  return x ? 1 : 0;
-}
+var inspect = 4 === util.inspect.length
+  ? // node <= 0.8.x
+    function(v, colors) {
+      return util.inspect(v, void 0, void 0, colors);
+    }
+  : // node > 0.8.x
+    function(v, colors) {
+      return util.inspect(v, { colors: colors });
+    };
 
-function b(): number {
-  var x: ?number = null;
-  return x != null ? x : 0;
-}
+const extractTextPluginOptions = shouldUseRelativeAssetPaths
+  ? // Making sure that the publicPath goes back to to build folder.
+    { publicPath: Array(cssFilename.split(\\"/\\").length).join(\\"../\\") }
+  : {};
 
-function c(): number {
-  // equivalent to \`return (x && 1) || 0\`
-  var x = false;
-  var temp = x ? 1 : x;
-  return temp ? temp : 0;
-}
+const extractTextPluginOptions = shouldUseRelativeAssetPaths
+  ? // Making sure that the publicPath goes back to to build folder.
+    { publicPath: Array(cssFilename.split(\\"/\\").length).join(\\"../\\") }
+  : {};
 
-function d(): string {
-  // expected \`: number | boolean\`
-  // equivalent to \`return x != null && x\`
-  var x: ?number = null;
-  return x != null ? x : x != null;
-}
+const extractTextPluginOptions = shouldUseRelativeAssetPaths // Making sure that the publicPath goes back to to build folder.
+  ? { publicPath: Array(cssFilename.split(\\"/\\").length).join(\\"../\\") }
+  : {};
+
+const { configureStore } = process.env.NODE_ENV === \\"production\\"
+  ? require(\\"./configureProdStore\\") // a
+  : require(\\"./configureDevStore\\"); // b
+"
+`;
+
+exports[`new-expression.js 1`] = `
+"const testConsole = new TestConsole(
+  config.useStderr ? process.stderr : process.stdout
+);
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+const testConsole = new TestConsole(
+  config.useStderr ? process.stderr : process.stdout
+);
 "
 `;

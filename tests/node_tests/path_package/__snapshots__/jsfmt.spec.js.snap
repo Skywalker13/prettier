@@ -1,8 +1,0 @@
-exports[`test foo.js 1`] = `
-"var x = require(\'bar_lib/src/lib\');
-console.log(x);
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var x = require(\"bar_lib/src/lib\");
-console.log(x);
-"
-`;
