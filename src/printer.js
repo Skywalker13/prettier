@@ -2356,7 +2356,7 @@ function printFunctionParams(path, print, options, expandArg, isArrow) {
 
   if (printed.length === 0) {
     return concat([
-      options.parenthesisSpace ? " (" : "(",
+      options.parenthesisSpace && !isArrow ? " (" : "(",
       comments.printDanglingComments(path, options, /* sameIndent */ true),
       ")"
     ]);
