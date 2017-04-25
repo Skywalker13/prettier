@@ -13,6 +13,10 @@ I know but code without spaces looks ugly for me. Why adding a space before a
 `if ()`, `while ()` and not before a function call? If you doesn't like spaces,
 you should write `if()` and `while()`.
 
+## Options
+
+Just set the `parenthesisSpace` option to `true`.
+
 # Prettier
 
 [![Gitter](https://badges.gitter.im/gitterHQ/gitter.svg)](https://gitter.im/jlongster/prettier)
