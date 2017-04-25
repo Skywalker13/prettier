@@ -1,3 +1,18 @@
+# Prettier space parenthesis
+
+It's a fork of Prettier that can add a space before all parenthesis
+everywhere; like this:
+
+```js
+my_function ();
+```
+
+## Why ? it's not common...
+
+I know but code without spaces looks ugly for me. Why adding a space before a
+`if ()`, `while ()` and not before a function call? If you doesn't like spaces,
+you should write `if()` and `while()`.
+
 # Prettier
 
 [![Gitter](https://badges.gitter.im/gitterHQ/gitter.svg)](https://gitter.im/jlongster/prettier)
