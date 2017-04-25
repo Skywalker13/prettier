@@ -3,7 +3,7 @@
   "version": "1.2.202",
   "description": "Prettier is an opinionated JavaScript formatter",
   "bin": {
-    "prettier": "./bin/prettier.js"
+    "prettier-space-parenthesis": "./bin/prettier.js"
   },
   "repository": "Skywalker13/prettier-space-parenthesis",
   "author": "James Long",
