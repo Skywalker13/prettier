@@ -351,7 +351,8 @@ function genericPrintNoParens(path, options, print, args) {
                 path,
                 print,
                 options,
-                args && (args.expandLastArg || args.expandFirstArg)
+                args && (args.expandLastArg || args.expandFirstArg),
+                true
               ),
               printReturnType(path, print)
             ])
@@ -2332,7 +2333,7 @@ function printArgumentsList(path, options, print) {
   );
 }
 
-function printFunctionParams(path, print, options, expandArg) {
+function printFunctionParams(path, print, options, expandArg, isArrow) {
   var fun = path.getValue();
   // namedTypes.Function.assert(fun);
   var paramsField = fun.type === "TSFunctionType" ? "parameters" : "params";
@@ -2433,7 +2434,7 @@ function printFunctionParams(path, print, options, expandArg) {
     !fun.rest;
 
   return concat([
-    isFlowShorthandWithOneArg ? "" : (options.parenthesisSpace ? " (" : "("),
+    isFlowShorthandWithOneArg ? "" : (options.parenthesisSpace && !isArrow ? " (" : "("),
     indent(concat([softline, join(concat([",", line]), printed)])),
     ifBreak(
       canHaveTrailingComma && shouldPrintComma(options, "all") ? "," : ""
