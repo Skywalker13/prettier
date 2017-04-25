@@ -184,7 +184,7 @@ function genericPrintNoParens(path, options, print, args) {
     case "ExpressionStatement":
       return concat([path.call(print, "expression"), semi]); // Babel extension.
     case "ParenthesizedExpression":
-      return concat([(options.parentheseSpace ? " (": "("), path.call(print, "expression"), ")"]);
+      return concat([(options.parenthesisSpace ? " (": "("), path.call(print, "expression"), ")"]);
     case "AssignmentExpression":
       return printAssignment(
         n.left,
@@ -692,7 +692,7 @@ function genericPrintNoParens(path, options, print, args) {
         return concat([
           path.call(print, "callee"),
           path.call(print, "typeParameters"),
-          concat([(options.parentheseSpace ? " (": "("), join(", ", path.map(print, "arguments")), ")"])
+          concat([(options.parenthesisSpace ? " (": "("), join(", ", path.map(print, "arguments")), ")"])
         ]);
       }
 
@@ -1836,7 +1836,7 @@ function genericPrintNoParens(path, options, print, args) {
     }
     case "TypeCastExpression":
       return concat([
-        (options.parentheseSpace ? " (" : "("),
+        (options.parenthesisSpace ? " (" : "("),
         path.call(print, "expression"),
         ": ",
         path.call(print, "typeAnnotation"),
@@ -1942,7 +1942,7 @@ function genericPrintNoParens(path, options, print, args) {
       return concat(parts);
     case "TSCallSignature":
       return concat([
-        (options.parentheseSpace ? " (" : "("),
+        (options.parenthesisSpace ? " (" : "("),
         join(", ", path.map(print, "parameters")),
         "): ",
         path.call(print, "typeAnnotation")
@@ -2248,7 +2248,7 @@ function printArgumentsList(path, options, print) {
 
   if (printed.length === 0) {
     return concat([
-      (options.parentheseSpace ? " (" : "("),
+      (options.parenthesisSpace ? " (" : "("),
       comments.printDanglingComments(path, options, /* sameIndent */ true),
       ")"
     ]);
@@ -2286,17 +2286,17 @@ function printArgumentsList(path, options, print) {
       printed.some(willBreak) ? breakParent : "",
       conditionalGroup(
         [
-          concat([(options.parentheseSpace ? " (" : "("), join(concat([", "]), printedExpanded), ")"]),
+          concat([(options.parenthesisSpace ? " (" : "("), join(concat([", "]), printedExpanded), ")"]),
           shouldGroupFirst
             ? concat([
-                (options.parentheseSpace ? " (" : "("),
+                (options.parenthesisSpace ? " (" : "("),
                 group(printedExpanded[0], { shouldBreak: true }),
                 printed.length > 1 ? ", " : "",
                 join(concat([",", line]), printed.slice(1)),
                 ")"
               ])
             : concat([
-                (options.parentheseSpace ? " (" : "("),
+                (options.parenthesisSpace ? " (" : "("),
                 join(concat([",", line]), printed.slice(0, -1)),
                 printed.length > 1 ? ", " : "",
                 group(util.getLast(printedExpanded), {
@@ -2306,7 +2306,7 @@ function printArgumentsList(path, options, print) {
               ]),
           group(
             concat([
-              (options.parentheseSpace ? " (" : "("),
+              (options.parenthesisSpace ? " (" : "("),
               indent(concat([line, join(concat([",", line]), printed)])),
               shouldPrintComma(options, "all") ? "," : "",
               line,
@@ -2322,7 +2322,7 @@ function printArgumentsList(path, options, print) {
 
   return group(
     concat([
-      (options.parentheseSpace ? " (" : "("),
+      (options.parenthesisSpace ? " (" : "("),
       indent(concat([softline, join(concat([",", line]), printed)])),
       ifBreak(shouldPrintComma(options, "all") ? "," : ""),
       softline,
@@ -2374,7 +2374,7 @@ function printFunctionParams(path, print, options, expandArg) {
   //   })                    ) => {
   //                         })
   if (expandArg) {
-    return group(concat([(options.parentheseSpace ? " (" : "("), join(", ", printed.map(removeLines)), ")"]));
+    return group(concat([(options.parenthesisSpace ? " (" : "("), join(", ", printed.map(removeLines)), ")"]));
   }
 
   // Single object destructuring should hug
@@ -2433,7 +2433,7 @@ function printFunctionParams(path, print, options, expandArg) {
     !fun.rest;
 
   return concat([
-    isFlowShorthandWithOneArg ? "" : (options.parentheseSpace ? " (" : "("),
+    isFlowShorthandWithOneArg ? "" : (options.parenthesisSpace ? " (" : "("),
     indent(concat([softline, join(concat([",", line]), printed)])),
     ifBreak(
       canHaveTrailingComma && shouldPrintComma(options, "all") ? "," : ""
@@ -3209,7 +3209,7 @@ function maybeWrapJSXElementInParens(path, elem, options) {
 
   return group(
     concat([
-      ifBreak((options.parentheseSpace ? " (" : "(")),
+      ifBreak((options.parenthesisSpace ? " (" : "(")),
       indent(concat([softline, elem])),
       softline,
       ifBreak(")")

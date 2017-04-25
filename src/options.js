@@ -11,7 +11,7 @@ var defaults = {
   trailingComma: "es5",
   bracketSpacing: false,
   jsxBracketSameLine: false,
-  parentheseSpace: true,
+  parenthesisSpace: true,
   parser: "babylon",
   semi: true
 };
