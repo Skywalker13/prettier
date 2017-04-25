@@ -1,11 +1,11 @@
 {
-  "name": "prettier",
+  "name": "prettier-space-parenthesis",
   "version": "1.2.201",
   "description": "Prettier is an opinionated JavaScript formatter",
   "bin": {
     "prettier": "./bin/prettier.js"
   },
-  "repository": "prettier/prettier",
+  "repository": "Skywalker13/prettier-space-parenthesis",
   "author": "James Long",
   "license": "MIT",
   "main": "./index.js",
