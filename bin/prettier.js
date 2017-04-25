@@ -19,6 +19,7 @@ const argv = minimist(process.argv.slice(2), {
     "single-quote",
     "bracket-spacing",
     "jsx-bracket-same-line",
+    "parenthesis-space",
     // The supports-color package (a sub sub dependency) looks directly at
     // `process.argv` for `--no-color` and such-like options. The reason it is
     // listed here is to avoid "Ignored unknown option: --no-color" warnings.
@@ -128,6 +129,7 @@ const options = {
   bracketSpacing: argv["bracket-spacing"],
   singleQuote: argv["single-quote"],
   jsxBracketSameLine: argv["jsx-bracket-same-line"],
+  parenthesisSpace: argv["parenthesis-space"],
   trailingComma: getTrailingComma(),
   parser: getParserOption()
 };
@@ -272,6 +274,7 @@ if (argv["help"] || (!filepatterns.length && !stdin)) {
       "  --single-quote           Use single quotes instead of double quotes.\n" +
       "  --no-bracket-spacing     Do not print spaces between brackets.\n" +
       "  --jsx-bracket-same-line  Put > on the last line instead of at a new line.\n" +
+      "  --parenthesis-space      Put a space before every parenthesis.\n" +
       "  --trailing-comma <none|es5|all>\n" +
       "                           Print trailing commas wherever possible. Defaults to none.\n" +
       "  --parser <flow|babylon>  Specify which parse to use. Defaults to babylon.\n" +
