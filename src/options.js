@@ -12,7 +12,8 @@ var defaults = {
   bracketSpacing: false,
   jsxBracketSameLine: false,
   parentheseSpace: true,
-  parser: "babylon"
+  parser: "babylon",
+  semi: true
 };
 
 var exampleConfig = Object.assign({}, defaults, {

@@ -45,3 +45,26 @@ switch (x) {
 
     break;
 }
+
+switch (a) {
+  case b:
+    if (1) {};
+    c;
+}
+
+switch (a) {
+  case x:
+  case y:
+    call();
+
+  case z:
+    call();
+}
+
+switch (a) {
+  case x: case y:
+    call();
+
+  case z:
+    call();
+}
