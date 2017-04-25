@@ -2375,7 +2375,7 @@ function printFunctionParams(path, print, options, expandArg, isArrow) {
   //   })                    ) => {
   //                         })
   if (expandArg) {
-    return group(concat([(options.parenthesisSpace ? " (" : "("), join(", ", printed.map(removeLines)), ")"]));
+    return group(concat([(options.parenthesisSpace && !isArrow ? " (" : "("), join(", ", printed.map(removeLines)), ")"]));
   }
 
   // Single object destructuring should hug
