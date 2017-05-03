@@ -3548,7 +3548,7 @@ function printJSXElement(path, options, print) {
   ]);
 }
 
-function maybeWrapJSXElementInParens(path, elem) {
+function maybeWrapJSXElementInParens(path, elem, options) {
   const parent = path.getParentNode();
   if (!parent) {
     return elem;
