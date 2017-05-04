@@ -378,8 +378,7 @@ function genericPrintNoParens(path, options, print, args) {
         n.body.type === "ObjectExpression" ||
         n.body.type === "JSXElement" ||
         n.body.type === "BlockStatement" ||
-        n.body.type === "TaggedTemplateExpression" ||
-        n.body.type === "TemplateLiteral" ||
+        isTemplateOnItsOwnLine(n.body, options.originalText) ||
         n.body.type === "ArrowFunctionExpression"
       ) {
         return group(collapsed);
@@ -707,7 +706,8 @@ function genericPrintNoParens(path, options, print, args) {
         // We want to keep require calls as a unit
         (n.callee.type === "Identifier" && n.callee.name === "require") ||
         // Template literals as single arguments
-        n.arguments.length === 1 && n.arguments[0].type === "TemplateLiteral" ||
+        (n.arguments.length === 1 &&
+          isTemplateOnItsOwnLine(n.arguments[0], options.originalText)) ||
         // Keep test declarations on a single line
         // e.g. `it('long name', () => {`
         (n.callee.type === "Identifier" &&
@@ -757,6 +757,7 @@ function genericPrintNoParens(path, options, print, args) {
       // typescript accepts ";" and newlines
       var separator = isTypeAnnotation ? "," : ",";
       var fields = [];
+      var prefix = [];
       var leftBrace = n.exact ? "{|" : "{";
       var rightBrace = n.exact ? "|}" : "}";
       var parent = path.getParentNode(0);
@@ -764,35 +765,25 @@ function genericPrintNoParens(path, options, print, args) {
       var propertiesField = isTypeScriptType
         ? "members"
         : "properties";
-      var prefix = []
 
       if (isTypeAnnotation) {
         fields.push("indexers", "callProperties");
       }
-
       if (isTypeScriptInterfaceDeclaration) {
         prefix.push(
           printTypeScriptModifiers(path, options, print),
           "interface ",
           path.call(print, "name"),
+          printTypeParameters(path, options, print, "typeParameters"),
+          " "
+        ); 
+      }
+      if (n.heritageClauses) {
+        prefix.push(
+          "extends ",
+          join(", ", path.map(print, "heritageClauses")),
           " "
         );
-
-        if (n.typeParameters) {
-          prefix.push(
-            "<",
-            join(", ", path.map(print, "typeParameters")),
-            ">"
-          );
-        }
-
-        if (n.heritageClauses) {
-          prefix.push(
-            "extends ",
-            join(", ", path.map(print, "heritageClauses")),
-            " "
-          );
-        }
       }
 
       fields.push(propertiesField);
@@ -1411,10 +1402,7 @@ function genericPrintNoParens(path, options, print, args) {
           typeof n.value.value === "string"
         ) {
           const value = n.value.extra ? n.value.extra.raw : n.value.raw;
-          res =
-            '"' +
-            value.slice(1, value.length - 1).replace(/"/g, "&quot;") +
-            '"';
+          res = '"' + value.slice(1, -1).replace(/"/g, "&quot;") + '"';
         } else {
           res = path.call(print, "value");
         }
@@ -1811,10 +1799,8 @@ function genericPrintNoParens(path, options, print, args) {
       // with flow they are one `TypeParameterDeclaration` node.
       if (n.type === 'TSFunctionType' && n.typeParameters) {
         parts.push(
-          "<",
-          join(", ", path.map(print, "typeParameters")),
-          ">"
-        )
+          printTypeParameters(path, options, print, "typeParameters")
+        );
       } else {
         parts.push(path.call(print, "typeParameters"));
       }
@@ -2027,31 +2013,8 @@ function genericPrintNoParens(path, options, print, args) {
         ")"
       ]);
     case "TypeParameterDeclaration":
-    case "TypeParameterInstantiation": {
-      const shouldInline =
-        n.params.length === 1 &&
-        (n.params[0].type === "ObjectTypeAnnotation" ||
-          n.params[0].type === "NullableTypeAnnotation");
-
-      if (shouldInline) {
-        return concat(["<", join(", ", path.map(print, "params")), ">"]);
-      }
-
-      return group(
-        concat([
-          "<",
-          indent(
-            concat([
-              softline,
-              join(concat([",", line]), path.map(print, "params"))
-            ])
-          ),
-          ifBreak(shouldPrintComma(options, "all") ? "," : ""),
-          softline,
-          ">"
-        ])
-      );
-    }
+    case "TypeParameterInstantiation":
+      return printTypeParameters(path, options, print, "params");
     case "TypeParameter":
       var variance = getFlowVariance(n, options);
 
@@ -2122,7 +2085,7 @@ function genericPrintNoParens(path, options, print, args) {
       return concat([path.call(print, "elementType"), "[]"]);
     case "TSPropertySignature":
       parts.push(path.call(print, "name"));
-      
+
       if (n.typeAnnotation) {
         parts.push(": ");
         parts.push(path.call(print, "typeAnnotation"));
@@ -2141,30 +2104,9 @@ function genericPrintNoParens(path, options, print, args) {
 
       return concat(parts);
     case "TSTypeReference":
-      parts.push(path.call(print, "typeName"))
-
-      if (n.typeArguments) {
-        parts.push(
-          "<",
-          join(", ", path.map(print, "typeArguments")),
-          ">"
-        )
-      }
-
-      return concat(parts);
-    case "TSCallSignature":
       return concat([
-        (options.parenthesisSpace ? " (" : "("),
-        join(", ", path.map(print, "parameters")),
-        "): ",
-        path.call(print, "typeAnnotation")
-      ]);
-    case "TSConstructSignature":
-      return concat([
-        "new (",
-        join(", ", path.map(print, "parameters")),
-        "): ",
-        path.call(print, "typeAnnotation")
+        path.call(print, "typeName"),
+        printTypeParameters(path, options, print, "typeArguments")
       ]);
     case "TSTypeQuery":
       return concat(["typeof ", path.call(print, "exprName")]);
@@ -2200,13 +2142,26 @@ function genericPrintNoParens(path, options, print, args) {
         path.call(print, "indexType"),
         "]"
       ])
+    case "TSConstructSignature":
     case "TSConstructorType":
-      return concat([
-        "new(",
+    case "TSCallSignature":
+      if (n.type !== "TSCallSignature") {
+        parts.push("new ");
+      }
+      var isType = n.type === "TSConstructorType";      
+      parts.push(
+        printTypeParameters(path, options, print, "typeParameters"),
+        "(",
         join(", ", path.map(print, "parameters")),
-        ") => ",
-        path.call(print, "typeAnnotation"),
-      ])
+        ")"
+      );
+      if (n.typeAnnotation) {
+        parts.push(
+          isType ? " => " : ": ",
+          path.call(print, "typeAnnotation")
+        );
+      }
+      return concat(parts);
     case "TSTypeOperator":
       return concat([
         "keyof ",
@@ -2224,13 +2179,13 @@ function genericPrintNoParens(path, options, print, args) {
         "}"
       ])
     case "TSTypeParameter":
-      parts.push(path.call(print, "name"))
+      parts.push(path.call(print, "name"));
 
       if (n.constraint) {
         parts.push(
           " in ",
           path.call(print, "constraint")
-        )
+        );
       }
 
       return concat(parts)
@@ -3015,6 +2970,39 @@ function printTypeScriptModifiers(path, options, print) {
   ]);
 }
 
+function printTypeParameters(path, options, print, paramsKey) {
+    const n = path.getValue();
+
+    // In flow, Foo<> is acceptable. In TypeScript, it's a syntax error.
+    if (!n[paramsKey] || (n.type.startsWith("TS") && !n[paramsKey].length)) {
+      return "";
+    }
+
+    const shouldInline =
+      n[paramsKey].length === 1 &&
+      (n[paramsKey][0].type === "ObjectTypeAnnotation" ||
+        n[paramsKey][0].type === "NullableTypeAnnotation");
+
+    if (shouldInline) {
+      return concat(["<", join(", ", path.map(print, paramsKey)), ">"]);
+    }
+
+    return group(
+      concat([
+        "<",
+        indent(
+          concat([
+            softline,
+            join(concat([",", line]), path.map(print, paramsKey))
+          ])
+        ),
+        ifBreak(shouldPrintComma(options, "all") ? "," : ""),
+        softline,
+        ">"
+      ])
+    );
+}
+
 function printClass(path, options, print) {
   const n = path.getValue();
   const parts = [];
@@ -3330,15 +3318,7 @@ function printJSXChildren(path, options, print, jsxWhitespace) {
     const isLiteral = namedTypes.Literal.check(child);
 
     if (isLiteral && typeof child.value === "string") {
-      // There's a bug in the flow parser where it doesn't unescape the
-      // value field. To workaround this, we can use rawValue which is
-      // correctly escaped (since it parsed).
-      // We really want to use value and re-escape it ourself when possible
-      // though.
-      const partiallyEscapedValue = options.parser === "flow"
-        ? child.raw
-        : util.htmlEscapeInsideAngleBracket(child.value);
-      const value = partiallyEscapedValue.replace(/\u00a0/g, "&nbsp;");
+      const value = child.raw || child.extra.raw;
 
       if (/\S/.test(value)) {
         // treat each line of text as its own entity
@@ -3383,9 +3363,11 @@ function printJSXChildren(path, options, print, jsxWhitespace) {
           children.push(hardline);
         }
       } else if (/\s/.test(value)) {
-        // whitespace-only without newlines,
-        // eg; a single space separating two elements
-        children.push(jsxWhitespace);
+        // whitespace(s)-only without newlines,
+        // eg; one or more spaces separating two elements
+        for (let i = 0; i < value.length; ++i) {
+          children.push(jsxWhitespace);
+        }
         children.push(softline);
       }
     } else {
@@ -4027,6 +4009,22 @@ function shouldHugArguments(fun) {
       fun.params[0].type === "FunctionTypeParam" &&
         fun.params[0].typeAnnotation.type === "ObjectTypeAnnotation") &&
     !fun.rest
+  );
+}
+
+function templateLiteralHasNewLines(template) {
+  return template.quasis.some(quasi => quasi.value.raw.includes('\n'));
+}
+
+function isTemplateOnItsOwnLine(n, text) {
+  return (
+    (n.type === "TemplateLiteral" && templateLiteralHasNewLines(n) ||
+    n.type === "TaggedTemplateExpression" && templateLiteralHasNewLines(n.quasi)) &&
+    !util.hasNewline(
+      text,
+      util.locStart(n),
+      {backwards: true}
+    )
   );
 }
 

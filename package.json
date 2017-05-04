@@ -1,6 +1,6 @@
 {
   "name": "prettier-space-parenthesis",
-  "version": "1.3.101",
+  "version": "1.3.200",
   "description": "Prettier is an opinionated JavaScript formatter",
   "bin": {
     "prettier-space-parenthesis": "./bin/prettier.js"
