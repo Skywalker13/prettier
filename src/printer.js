@@ -3551,7 +3551,7 @@ function maybeWrapJSXElementInParens(path, elem, options) {
 
   return group(
     concat([
-      ifBreak((options.parenthesisSpace ? " (" : "(")),
+      ifBreak("("),
       indent(concat([softline, elem])),
       softline,
       ifBreak(")")
