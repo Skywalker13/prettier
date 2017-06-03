@@ -2,9 +2,9 @@
 
 function flattenDoc(doc) {
   if (doc.type === "concat") {
-    var res = [];
+    const res = [];
 
-    for (var i = 0; i < doc.parts.length; ++i) {
+    for (let i = 0; i < doc.parts.length; ++i) {
       const doc2 = doc.parts[i];
       if (typeof doc2 !== "string" && doc2.type === "concat") {
         [].push.apply(res, flattenDoc(doc2).parts);
@@ -99,6 +99,10 @@ function printDoc(doc) {
       printDoc(doc.contents) +
       ")"
     );
+  }
+
+  if (doc.type === "fill") {
+    return "fill" + "(" + doc.parts.map(printDoc).join(", ") + ")";
   }
 
   if (doc.type === "line-suffix") {

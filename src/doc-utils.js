@@ -2,7 +2,7 @@
 
 function traverseDoc(doc, onEnter, onExit, shouldTraverseConditionalGroups) {
   function traverseDocRec(doc) {
-    var shouldRecurse = true;
+    let shouldRecurse = true;
     if (onEnter) {
       if (onEnter(doc) === false) {
         shouldRecurse = false;
@@ -10,8 +10,8 @@ function traverseDoc(doc, onEnter, onExit, shouldTraverseConditionalGroups) {
     }
 
     if (shouldRecurse) {
-      if (doc.type === "concat") {
-        for (var i = 0; i < doc.parts.length; i++) {
+      if (doc.type === "concat" || doc.type === "fill") {
+        for (let i = 0; i < doc.parts.length; i++) {
           traverseDocRec(doc.parts[i]);
         }
       } else if (doc.type === "if-break") {
@@ -43,7 +43,7 @@ function traverseDoc(doc, onEnter, onExit, shouldTraverseConditionalGroups) {
 function mapDoc(doc, func) {
   doc = func(doc);
 
-  if (doc.type === "concat") {
+  if (doc.type === "concat" || doc.type === "fill") {
     return Object.assign({}, doc, {
       parts: doc.parts.map(d => mapDoc(d, func))
     });
@@ -60,10 +60,10 @@ function mapDoc(doc, func) {
 }
 
 function findInDoc(doc, fn, defaultValue) {
-  var result = defaultValue;
-  var hasStopped = false;
-  traverseDoc(doc, function(doc) {
-    var maybeResult = fn(doc);
+  let result = defaultValue;
+  let hasStopped = false;
+  traverseDoc(doc, doc => {
+    const maybeResult = fn(doc);
     if (maybeResult !== undefined) {
       hasStopped = true;
       result = maybeResult;
@@ -125,7 +125,7 @@ function breakParentGroup(groupStack) {
 }
 
 function propagateBreaks(doc) {
-  var alreadyVisited = new Map();
+  const alreadyVisited = new Map();
   const groupStack = [];
   traverseDoc(
     doc,

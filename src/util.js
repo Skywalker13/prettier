@@ -1,7 +1,7 @@
 "use strict";
 
 function isExportDeclaration(node) {
-  if (node)
+  if (node) {
     switch (node.type) {
       case "ExportDeclaration":
       case "ExportDefaultDeclaration":
@@ -11,12 +11,13 @@ function isExportDeclaration(node) {
       case "ExportAllDeclaration":
         return true;
     }
+  }
 
   return false;
 }
 
 function getParentExportDeclaration(path) {
-  var parentNode = path.getParentNode();
+  const parentNode = path.getParentNode();
   if (path.getName() === "declaration" && isExportDeclaration(parentNode)) {
     return parentNode;
   }
@@ -85,7 +86,7 @@ function skipInlineComment(text, index) {
   }
 
   if (text.charAt(index) === "/" && text.charAt(index + 1) === "*") {
-    for (var i = index + 2; i < text.length; ++i) {
+    for (let i = index + 2; i < text.length; ++i) {
       if (text.charAt(i) === "*" && text.charAt(i + 1) === "/") {
         return i + 2;
       }
@@ -152,7 +153,7 @@ function hasNewline(text, index, opts) {
 }
 
 function hasNewlineInRange(text, start, end) {
-  for (var i = start; i < end; ++i) {
+  for (let i = start; i < end; ++i) {
     if (text.charAt(i) === "\n") {
       return true;
     }
@@ -205,17 +206,42 @@ function hasSpaces(text, index, opts) {
 }
 
 function locStart(node) {
+  if (node.decorators && node.decorators.length > 0) {
+    return locStart(node.decorators[0]);
+  }
   if (node.range) {
     return node.range[0];
   }
-  return node.start;
+  if (typeof node.start === "number") {
+    return node.start;
+  }
+  if (node.source) {
+    return lineColumnToIndex(node.source.start, node.source.input.css) - 1;
+  }
 }
 
 function locEnd(node) {
   if (node.range) {
     return node.range[1];
   }
-  return node.end;
+  if (typeof node.end === "number") {
+    return node.end;
+  }
+  if (node.source) {
+    return lineColumnToIndex(node.source.end, node.source.input.css);
+  }
+}
+
+// Super inefficient, needs to be cached.
+function lineColumnToIndex(lineColumn, text) {
+  let index = 0;
+  for (let i = 0; i < lineColumn.line - 1; ++i) {
+    index = text.indexOf("\n", index) + 1;
+    if (index === -1) {
+      return -1;
+    }
+  }
+  return index + lineColumn.column;
 }
 
 function setLocStart(node, index) {
@@ -234,7 +260,7 @@ function setLocEnd(node, index) {
   }
 }
 
-var PRECEDENCE = {};
+const PRECEDENCE = {};
 [
   ["||"],
   ["&&"],
@@ -247,8 +273,8 @@ var PRECEDENCE = {};
   ["+", "-"],
   ["*", "/", "%"],
   ["**"]
-].forEach(function(tier, i) {
-  tier.forEach(function(op) {
+].forEach((tier, i) => {
+  tier.forEach(op => {
     PRECEDENCE[op] = i;
   });
 });
@@ -256,7 +282,6 @@ var PRECEDENCE = {};
 function getPrecedence(op) {
   return PRECEDENCE[op];
 }
-
 
 // Tests if an expression starts with `{`, or (if forbidFunctionAndClass holds) `function` or `class`.
 // Will be overzealous if there's already necessary grouping parentheses.
@@ -299,6 +324,11 @@ function startsWithNoLookaheadToken(node, forbidFunctionAndClass) {
         node.expressions[0],
         forbidFunctionAndClass
       );
+    case "TSAsExpression":
+      return startsWithNoLookaheadToken(
+        node.expression,
+        forbidFunctionAndClass
+      );
     default:
       return false;
   }
@@ -310,6 +340,33 @@ function getLeftMost(node) {
   } else {
     return node;
   }
+}
+
+function hasBlockComments(node) {
+  return node.comments && node.comments.some(isBlockComment);
+}
+
+function isBlockComment(comment) {
+  return comment.type === "Block" || comment.type === "CommentBlock";
+}
+
+function getAlignmentSize(value, tabWidth, startIndex) {
+  startIndex = startIndex || 0;
+
+  let size = 0;
+  for (let i = startIndex; i < value.length; ++i) {
+    if (value[i] === "\t") {
+      // Tabs behave in a way that they are aligned to the nearest
+      // multiple of tabWidth:
+      // 0 -> 4, 1 -> 4, 2 -> 4, 3 -> 4
+      // 4 -> 8, 5 -> 8, 6 -> 8, 7 -> 8 ...
+      size = size + tabWidth - size % tabWidth;
+    } else {
+      size++;
+    }
+  }
+
+  return size;
 }
 
 module.exports = {
@@ -331,5 +388,8 @@ module.exports = {
   locEnd,
   setLocStart,
   setLocEnd,
-  startsWithNoLookaheadToken
+  startsWithNoLookaheadToken,
+  hasBlockComments,
+  isBlockComment,
+  getAlignmentSize
 };

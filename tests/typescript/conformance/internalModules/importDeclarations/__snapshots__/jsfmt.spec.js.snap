@@ -22,18 +22,18 @@ var c = new B.a.C();
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // expected no error
 
-module B {
+namespace B {
   export import a = A;
   export class D extends a.C {
     id: number;
   }
 }
 
-module A {
-
+namespace A {
   export class C {
     name: string;
-  }export import b = B;
+  }
+  export import b = B;
 }
 
 var c: { name: string };
@@ -112,68 +112,76 @@ var p: { x: number; y: number; }
 var p: M.D.Point;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // expect no errors here
 
-module A {
+namespace A {
   export var x = "hello world";
   export class Point {
     constructor(public x: number, public y: number) {}
-  }export module B {
+  }
+  export namespace B {
     export interface Id {
-      name: string
+      name: string;
     }
   }
 }
 
-module C {
+namespace C {
   export import a = A;
 }
 
 var a: string = C.a.x;
-var b: { x: number, y: number } = new C.a.Point(0, 0);
+var b: { x: number; y: number } = new C.a.Point(0, 0);
 var c: { name: string };
-var c: undefined.Id;
+var c: C.a.B.Id;
 
-module X {
-
+namespace X {
   export function Y() {
     return 42;
-  }export module Y {
+  }
 
+  export namespace Y {
     export class Point {
       constructor(public x: number, public y: number) {}
     }
   }
 }
 
-module Z {
-
-// 'y' should be a fundule here
+namespace Z {
+  // 'y' should be a fundule here
   export import y = X.Y;
 }
 
 var m: number = Z.y();
-var n: { x: number, y: number } = new Z.y.Point(0, 0);
+var n: { x: number; y: number } = new Z.y.Point(0, 0);
 
-module K {
-
+namespace K {
   export class L {
     constructor(public name: string) {}
-  }export module L {
-    export var y = 12;export interface Point {
-      x: number,
-      y: number
+  }
+
+  export namespace L {
+    export var y = 12;
+    export interface Point {
+      x: number;
+      y: number;
     }
   }
 }
 
-module M {
+namespace M {
   export import D = K.L;
 }
 
 var o: { name: string };
 var o = new M.D("Hello");
 
-var p: { x: number, y: number };
-var p: undefined.Point;
+var p: { x: number; y: number };
+var p: M.D.Point;
+
+`;
+
+exports[`exportInterface.ts 1`] = `
+export interface I {}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+export interface I {}
 
 `;
 
@@ -224,49 +232,53 @@ import funlias = fundule;
 var p: funlias.Point;
 var p: fundule.Point;
 var p: { x: number; y: number; };~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-module moduleA {
-
+namespace moduleA {
   export class Point {
     constructor(public x: number, public y: number) {}
   }
 }
 
 import alias = moduleA;
+
 var p: alias.Point;
 var p: moduleA.Point;
-var p: { x: number, y: number };
+var p: { x: number; y: number };
 
 class clodule {
   name: string;
 }
 
-module clodule {
+namespace clodule {
   export interface Point {
-    x: number,
-    y: number
-  }var Point: Point = { x: 0, y: 0 };
+    x: number;
+    y: number;
+  }
+  var Point: Point = { x: 0, y: 0 };
 }
 
 import clolias = clodule;
+
 var p: clolias.Point;
 var p: clodule.Point;
-var p: { x: number, y: number };
+var p: { x: number; y: number };
 
 function fundule() {
   return { x: 0, y: 0 };
 }
 
-module fundule {
+namespace fundule {
   export interface Point {
-    x: number,
-    y: number
-  }var Point: Point = { x: 0, y: 0 };
+    x: number;
+    y: number;
+  }
+  var Point: Point = { x: 0, y: 0 };
 }
 
 import funlias = fundule;
+
 var p: funlias.Point;
 var p: fundule.Point;
-var p: { x: number, y: number };
+var p: { x: number; y: number };
 
 `;
 
@@ -300,16 +312,22 @@ import i = I;
 var V = 12;
 
 import v = V;
+
 class C {
   name: string;
 }
 
 import c = C;
-enum E { Red, Blue }
+
+enum E {
+  Red,
+  Blue
+}
 
 import e = E;
+
 interface I {
-  id: number
+  id: number;
 }
 
 import i = I;
@@ -352,31 +370,36 @@ module Z {
 }~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // all errors imported modules conflict with local variables
 
-module A {
-  export var Point = { x: 0, y: 0 };export interface Point {
-    x: number,
-    y: number
+namespace A {
+  export var Point = { x: 0, y: 0 };
+  export interface Point {
+    x: number;
+    y: number;
   }
 }
 
-module B {
-  var A = { x: 0, y: 0 };import Point = A;
+namespace B {
+  var A = { x: 0, y: 0 };
+  import Point = A;
 }
 
-module X {
-  export module Y {
+namespace X {
+  export namespace Y {
     export interface Point {
-      x: number,
-      y: number
+      x: number;
+      y: number;
     }
   }
+
   export class Y {
     name: string;
   }
 }
 
-module Z {
-  import Y = X.Y;var Y = 12;
+namespace Z {
+  import Y = X.Y;
+
+  var Y = 12;
 }
 
 `;

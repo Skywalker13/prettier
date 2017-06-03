@@ -3,12 +3,14 @@
 "use strict";
 
 const fs = require("fs");
+const path = require("path");
 const getStdin = require("get-stdin");
 const glob = require("glob");
 const chalk = require("chalk");
 const minimist = require("minimist");
 const readline = require("readline");
-const prettier = require("../index");
+const prettier = eval("require")("../index");
+const cleanAST = require("../src/clean-ast.js").cleanAST;
 
 const argv = minimist(process.argv.slice(2), {
   boolean: [
@@ -30,11 +32,26 @@ const argv = minimist(process.argv.slice(2), {
     "version",
     "debug-print-doc",
     "debug-check",
+    "with-node-modules",
     // Deprecated in 0.0.10
     "flow-parser"
   ],
-  string: ["print-width", "tab-width", "parser", "trailing-comma"],
-  default: { semi: true, color: true, "bracket-spacing": true, parser: "babylon" },
+  string: [
+    "print-width",
+    "tab-width",
+    "parser",
+    "trailing-comma",
+    "cursor-offset",
+    "range-start",
+    "range-end",
+    "stdin-filepath"
+  ],
+  default: {
+    semi: true,
+    color: true,
+    "bracket-spacing": true,
+    parser: "babylon"
+  },
   alias: { help: "h", version: "v", "list-different": "l" },
   unknown: param => {
     if (param.startsWith("-")) {
@@ -52,6 +69,16 @@ if (argv["version"]) {
 const filepatterns = argv["_"];
 const write = argv["write"];
 const stdin = argv["stdin"] || (!filepatterns.length && !process.stdin.isTTY);
+const ignoreNodeModules = argv["with-node-modules"] === false;
+const globOptions = {
+  ignore: ignoreNodeModules && "**/node_modules/**",
+  dot: true
+};
+
+if (write && argv["debug-check"]) {
+  console.error("Cannot use --write and --debug-check together.");
+  process.exit(1);
+}
 
 function getParserOption() {
   const optionName = "parser";
@@ -67,7 +94,12 @@ function getParserOption() {
     return "flow";
   }
 
-  if (value === "flow" || value === "babylon" || value === "typescript") {
+  if (
+    value === "flow" ||
+    value === "babylon" ||
+    value === "typescript" ||
+    value === "postcss"
+  ) {
     return value;
   }
 
@@ -112,6 +144,7 @@ function getTrailingComma() {
         "Warning: `--trailing-comma` was used without an argument. This is deprecated. " +
           'Specify "none", "es5", or "all".'
       );
+      return "es5";
     case "es5":
       return "es5";
     case "all":
@@ -122,6 +155,9 @@ function getTrailingComma() {
 }
 
 const options = {
+  cursorOffset: getIntOption("cursor-offset"),
+  rangeStart: getIntOption("range-start"),
+  rangeEnd: getIntOption("range-end"),
   useTabs: argv["use-tabs"],
   semi: argv["semi"],
   printWidth: getIntOption("print-width"),
@@ -130,110 +166,47 @@ const options = {
   singleQuote: argv["single-quote"],
   jsxBracketSameLine: argv["jsx-bracket-same-line"],
   parenthesisSpace: argv["parenthesis-space"],
+  filepath: argv["stdin-filepath"],
   trailingComma: getTrailingComma(),
   parser: getParserOption()
 };
 
-function format(input) {
+function format(input, opt) {
   if (argv["debug-print-doc"]) {
-    const doc = prettier.__debug.printToDoc(input, options);
+    const doc = prettier.__debug.printToDoc(input, opt);
     return prettier.__debug.formatDoc(doc);
   }
 
   if (argv["debug-check"]) {
-    function massageAST(ast) {
-      if (Array.isArray(ast)) {
-        return ast.map(e => massageAST(e)).filter(e => e);
-      }
-      if (ast && typeof ast === "object") {
-        // We remove extra `;` and add them when needed
-        if (ast.type === "EmptyStatement") {
-          return undefined;
-        }
-
-        // We move text around, including whitespaces and add {" "}
-        if (ast.type === "JSXText") {
-          return undefined;
-        }
-        if (
-          ast.type === "JSXExpressionContainer" &&
-          ast.expression.type === "Literal" &&
-          ast.expression.value === " "
-        ) {
-          return undefined;
-        }
-
-        const newObj = {};
-        for (var key in ast) {
-          newObj[key] = massageAST(ast[key]);
-        }
-
-        [
-          "loc",
-          "range",
-          "raw",
-          "comments",
-          "start",
-          "end",
-          "tokens",
-          "flags"
-        ].forEach(name => {
-          delete newObj[name];
-        });
-
-        // We convert <div></div> to <div />
-        if (ast.type === "JSXOpeningElement") {
-          delete newObj.selfClosing;
-        }
-        if (ast.type === "JSXElement") {
-          delete newObj.closingElement;
-        }
-
-        // We change {'key': value} into {key: value}
-        if (
-          ast.type === "Property" &&
-          typeof ast.key === "object" &&
-          ast.key &&
-          (ast.key.type === "Literal" || ast.key.type === "Identifier")
-        ) {
-          delete newObj.key;
-        }
-
-        return newObj;
-      }
-      return ast;
-    }
-
-    function cleanAST(ast) {
-      return JSON.stringify(massageAST(ast), null, 2);
-    }
-
     function diff(a, b) {
-      return require("diff")
-        .createTwoFilesPatch("", "", a, b, "", "", { context: 2 });
+      return require("diff").createTwoFilesPatch("", "", a, b, "", "", {
+        context: 2
+      });
     }
 
-    const pp = prettier.format(input, options);
-    const pppp = prettier.format(pp, options);
+    const pp = prettier.format(input, opt);
+    const pppp = prettier.format(pp, opt);
     if (pp !== pppp) {
-      process.stdout.write("\n");
-      console.error('prettier(input) !== prettier(prettier(input))');
-      console.error(diff(pp, pppp));
+      throw "prettier(input) !== prettier(prettier(input))\n" + diff(pp, pppp);
     } else {
-      const ast = cleanAST(prettier.__debug.parse(input, options));
-      const past = cleanAST(prettier.__debug.parse(pp, options));
+      const ast = cleanAST(prettier.__debug.parse(input, opt));
+      const past = cleanAST(prettier.__debug.parse(pp, opt));
 
       if (ast !== past) {
-        process.stdout.write("\n");
-        console.error('ast(input) !== ast(prettier(input))');
-        console.error(diff(ast, past));
-        console.error(diff(input, pp));
+        const MAX_AST_SIZE = 2097152; // 2MB
+        const astDiff = ast.length > MAX_AST_SIZE || past.length > MAX_AST_SIZE
+          ? "AST diff too large to render"
+          : diff(ast, past);
+        throw "ast(input) !== ast(prettier(input))\n" +
+          astDiff +
+          "\n" +
+          diff(input, pp);
       }
     }
-    return;
+    return {};
   }
 
-  return prettier.format(input, options);
+  return prettier.formatWithCursor(input, opt);
 }
 
 function handleError(filename, e) {
@@ -253,7 +226,7 @@ function handleError(filename, e) {
     // If validation fails for one file, it will fail for all of them.
     process.exit(1);
   } else {
-    console.error(filename + ":", e);
+    console.error(filename + ":", e.stack || e);
   }
 
   // Don't exit the process if one file failed
@@ -267,6 +240,7 @@ if (argv["help"] || (!filepatterns.length && !stdin)) {
       "  --write                  Edit the file in-place. (Beware!)\n" +
       "  --list-different or -l   Print filenames of files that are different from Prettier formatting.\n" +
       "  --stdin                  Read input from stdin.\n" +
+      "  --stdin-filepath         Path to the file used to read from stdin.\n" +
       "  --print-width <int>      Specify the length of line that the printer will wrap on. Defaults to 80.\n" +
       "  --tab-width <int>        Specify the number of spaces per indentation-level. Defaults to 2.\n" +
       "  --use-tabs               Indent lines with tabs instead of spaces.\n" +
@@ -277,8 +251,20 @@ if (argv["help"] || (!filepatterns.length && !stdin)) {
       "  --parenthesis-space      Put a space before every parenthesis.\n" +
       "  --trailing-comma <none|es5|all>\n" +
       "                           Print trailing commas wherever possible. Defaults to none.\n" +
-      "  --parser <flow|babylon>  Specify which parse to use. Defaults to babylon.\n" +
+      "  --parser <flow|babylon|typescript|postcss>\n" +
+      "                           Specify which parse to use. Defaults to babylon.\n" +
+      "  --cursor-offset <int>    Print (to stderr) where a cursor at the given position would move to after formatting.\n" +
+      "                           This option cannot be used with --range-start and --range-end\n" +
+      "  --range-start <int>      Format code starting at a given character offset.\n" +
+      "                           The range will extend backwards to the start of the first line containing the selected statement.\n" +
+      "                           This option cannot be used with --cursor-offset.\n" +
+      "                           Defaults to 0.\n" +
+      "  --range-end <int>        Format code ending at a given character offset (exclusive).\n" +
+      "                           The range will extend forwards to the end of the selected statement.\n" +
+      "                           This option cannot be used with --cursor-offset.\n" +
+      "                           Defaults to Infinity.\n" +
       "  --no-color               Do not colorize error messages.\n" +
+      "  --with-node-modules      Process files inside `node_modules` directory.\n" +
       "  --version or -v          Print Prettier version.\n" +
       "\n"
   );
@@ -288,8 +274,7 @@ if (argv["help"] || (!filepatterns.length && !stdin)) {
 if (stdin) {
   getStdin().then(input => {
     try {
-      // Don't use `console.log` here since it adds an extra newline at the end.
-      process.stdout.write(format(input));
+      writeOutput(format(input, options));
     } catch (e) {
       handleError("stdin", e);
       return;
@@ -317,18 +302,24 @@ if (stdin) {
 
     if (argv["list-different"]) {
       if (!prettier.check(input, options)) {
-        console.log(filename);
+        if (!write) {
+          console.log(filename);
+        }
         process.exitCode = 1;
       }
-      return;
     }
 
     const start = Date.now();
 
+    let result;
     let output;
 
     try {
-      output = format(input);
+      result = format(
+        input,
+        Object.assign({}, options, { filepath: filename })
+      );
+      output = result.formatted;
     } catch (e) {
       // Add newline to split errors from filename line.
       process.stdout.write("\n");
@@ -345,9 +336,15 @@ if (stdin) {
       // Don't write the file if it won't change in order not to invalidate
       // mtime based caches.
       if (output === input) {
-        console.log(chalk.grey("%s %dms"), filename, Date.now() - start);
+        if (!argv["list-different"]) {
+          console.log(chalk.grey("%s %dms"), filename, Date.now() - start);
+        }
       } else {
-        console.log("%s %dms", filename, Date.now() - start);
+        if (argv["list-different"]) {
+          console.log(filename);
+        } else {
+          console.log("%s %dms", filename, Date.now() - start);
+        }
 
         try {
           fs.writeFileSync(filename, output, "utf8");
@@ -361,22 +358,35 @@ if (stdin) {
       process.stdout.write("\n");
       if (output) {
         console.log(output);
+      } else {
+        process.exitCode = 2;
       }
-    } else {
-      // Don't use `console.log` here since it adds an extra newline at the end.
-      process.stdout.write(output);
+    } else if (!argv["list-different"]) {
+      writeOutput(result);
     }
   });
+}
+
+function writeOutput(result) {
+  // Don't use `console.log` here since it adds an extra newline at the end.
+  process.stdout.write(result.formatted);
+
+  if (options.cursorOffset) {
+    process.stderr.write(result.cursorOffset + "\n");
+  }
 }
 
 function eachFilename(patterns, callback) {
   patterns.forEach(pattern => {
     if (!glob.hasMagic(pattern)) {
+      if (shouldIgnorePattern(pattern)) {
+        return;
+      }
       callback(pattern);
       return;
     }
 
-    glob(pattern, (err, filenames) => {
+    glob(pattern, globOptions, (err, filenames) => {
       if (err) {
         console.error("Unable to expand glob pattern: " + pattern + "\n" + err);
         // Don't exit the process if one pattern failed
@@ -389,4 +399,8 @@ function eachFilename(patterns, callback) {
       });
     });
   });
+}
+
+function shouldIgnorePattern(pattern) {
+  return ignoreNodeModules && path.resolve(pattern).includes("/node_modules/");
 }

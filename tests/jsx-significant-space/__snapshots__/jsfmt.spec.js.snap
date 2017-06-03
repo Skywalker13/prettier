@@ -91,8 +91,7 @@ before = (
 before_break1 = (
   <span>
     <span barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar />
-    {" "}
-    foo
+    {" "}foo
   </span>
 );
 
@@ -101,16 +100,16 @@ before_break2 = (
     <span
       barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar
     />
-    {" "}
-    foo
+    {" "}foo
   </span>
 );
 
 after_break = (
   <span>
     foo
-    {" "}
-    <span barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar />
+    {" "}<span
+      barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar
+    />
   </span>
 );
 
@@ -152,14 +151,14 @@ regression_not_transformed_1 = (
 
 regression_not_transformed_2 = (
   <span>
-    <Icon icon="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" />{" "}
+    <Icon icon="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" />
+    {" "}
   </span>
 );
 
 similar_1 = (
   <span>
-    {" "}
-    <Icon icon="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" />
+    {" "}<Icon icon="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" />
   </span>
 );
 
@@ -178,22 +177,15 @@ similar_3 = (
 
 not_broken_end = (
   <div>
-    long text long text long text long text long text long text long text long text
-    {" "}
-    <link>url</link>
-    {" "}
-    long text long text
+    long text long text long text long text long text long text long text long
+    text <link>url</link> long text long text
   </div>
 );
 
 not_broken_begin = (
   <div>
-    <br />
-    {" "}
-    long text long text long text long text long text long text long text long text
-    <link>url</link>
-    {" "}
-    long text long text
+    <br /> long text long text long text long text long text long text long text
+    long text<link>url</link> long text long text
   </div>
 );
 
