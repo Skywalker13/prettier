@@ -14,6 +14,7 @@ const defaults = {
   trailingComma: "es5",
   bracketSpacing: false,
   jsxBracketSameLine: false,
+  alignObjectProperties: true,
   parenthesisSpace: true,
   parser: "babylon",
   semi: true

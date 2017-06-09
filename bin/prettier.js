@@ -21,6 +21,7 @@ const argv = minimist(process.argv.slice(2), {
     "single-quote",
     "bracket-spacing",
     "jsx-bracket-same-line",
+    "align-object-properties",
     "parenthesis-space",
     // The supports-color package (a sub sub dependency) looks directly at
     // `process.argv` for `--no-color` and such-like options. The reason it is
@@ -166,6 +167,7 @@ const options = {
   bracketSpacing: argv["bracket-spacing"],
   singleQuote: argv["single-quote"],
   jsxBracketSameLine: argv["jsx-bracket-same-line"],
+  alignObjectProperties: argv["align-object-properties"],
   parenthesisSpace: argv["parenthesis-space"],
   filepath: argv["stdin-filepath"],
   trailingComma: getTrailingComma(),
@@ -249,6 +251,8 @@ if (argv["help"] || (!filepatterns.length && !stdin)) {
       "  --single-quote           Use single quotes instead of double quotes.\n" +
       "  --no-bracket-spacing     Do not print spaces between brackets.\n" +
       "  --jsx-bracket-same-line  Put > on the last line instead of at a new line.\n" +
+      "  --align-object-properties\n" +
+      "                           Align colons in multiline object literals. Does nothing if object has computed property names.\n" +
       "  --parenthesis-space      Put a space before every parenthesis.\n" +
       "  --trailing-comma <none|es5|all>\n" +
       "                           Print trailing commas wherever possible. Defaults to none.\n" +

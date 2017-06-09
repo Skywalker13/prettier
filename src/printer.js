@@ -172,6 +172,58 @@ function genericPrint(path, options, printPath, args) {
   return concat(parts);
 }
 
+function getPropertyPadding(options, path) {
+  if (!options.alignObjectProperties) {
+    return "";
+  }
+
+  const n = path.getValue();
+  const type = n.type;
+
+  const parentNode = path.getParentNode();
+  const isPropertyKey =
+    (parentNode.type === "Property" || parentNode.type === "ObjectProperty") &&
+    parentNode.key === n;
+
+  if (!isPropertyKey) {
+    return "";
+  }
+
+  const parentObject = path.getParentNode(1);
+  const shouldBreak = util.hasNewlineInRange(
+    options.originalText,
+    util.locStart(parentObject),
+    util.locEnd(parentObject)
+  );
+
+  if (!shouldBreak) {
+    return "";
+  }
+
+  const nameLength = type === "Identifier"
+    ? n.name.length
+    : type === "NumericLiteral"
+        ? printNumber(n.extra.raw).length
+        : type === "StringLiteral" ? nodeStr(n, options).length : undefined;
+
+  if (nameLength === undefined) {
+    return "";
+  }
+
+  const properties = parentObject.properties;
+  const lengths = properties.map(
+    p => {
+      if (!p.key) return 0;
+      return p.key.end - p.key.start + (p.computed ? 2 : 0)
+    }
+  );
+  const maxLength = Math.max.apply(null, lengths);
+  const padLength = maxLength - nameLength + 1;
+  const padding = " ".repeat(padLength);
+
+  return padding;
+}
+
 function genericPrintNoParens(path, options, print, args) {
   const n = path.getValue();
   const semi = options.semi ? ";" : "";
@@ -968,10 +1020,11 @@ function genericPrintNoParens(path, options, print, args) {
         parts.push(path.call(print, "value"));
       } else {
         let printedLeft;
+        let propertyPadding = path.call(getPropertyPadding.bind(null, options), "key");
         if (n.computed) {
-          printedLeft = concat(["[", path.call(print, "key"), "]"]);
+          printedLeft = concat(["[", path.call(print, "key"), "]", propertyPadding.slice(2)]);
         } else {
-          printedLeft = printPropertyKey(path, options, print);
+          printedLeft = concat([printPropertyKey(path, options, print), propertyPadding]);
         }
         parts.push(
           printAssignment(
