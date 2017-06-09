@@ -1,6 +1,6 @@
 {
   "name": "prettier-space-parenthesis",
-  "version": "1.4.100",
+  "version": "1.4.400",
   "description": "Prettier is an opinionated JavaScript formatter",
   "bin": {
     "prettier-space-parenthesis": "./bin/prettier.js"
@@ -11,7 +11,9 @@
   "main": "./index.js",
   "dependencies": {},
   "devDependencies": {
+    "babel-cli": "6.24.1",
     "babel-code-frame": "7.0.0-alpha.12",
+    "babel-preset-es2015": "6.24.1",
     "babylon": "7.0.0-beta.10",
     "chalk": "1.1.3",
     "cross-spawn": "5.1.0",
@@ -22,6 +24,7 @@
     "flow-parser": "0.47.0",
     "get-stdin": "5.0.1",
     "glob": "7.1.2",
+    "graphql": "0.10.1",
     "jest": "20.0.0",
     "jest-validate": "20.0.3",
     "minimist": "1.2.0",
@@ -32,7 +35,7 @@
     "postcss-scss": "1.0.0",
     "postcss-selector-parser": "2.2.3",
     "postcss-values-parser": "git://github.com/shellscape/postcss-values-parser.git#5e351360479116f3fe309602cdd15b0a233bc29f",
-    "prettier": "1.4.0",
+    "prettier": "1.4.2",
     "rimraf": "2.6.1",
     "rollup": "0.41.1",
     "rollup-plugin-commonjs": "7.0.0",
@@ -41,8 +44,8 @@
     "rollup-plugin-node-globals": "1.1.0",
     "rollup-plugin-node-resolve": "2.0.0",
     "rollup-plugin-replace": "1.1.1",
-    "typescript": "2.3.2",
-    "typescript-eslint-parser": "git://github.com/vjeux/typescript-eslint-parser.git#488ba4f273f52ee6ef8d951d7ae84d28231e2fe9",
+    "typescript": "2.3.4",
+    "typescript-eslint-parser": "git://github.com/eslint/typescript-eslint-parser.git#806251524424e3ad91e750da0f76b8de25ed0b42",
     "uglify-es": "3.0.15",
     "webpack": "2.6.1"
   },
@@ -50,8 +53,7 @@
     "test": "jest",
     "test-integration": "jest tests_integration",
     "lint": "eslint .",
-    "build": "./scripts/build/build.sh",
-    "build:docs": "rollup -c docs/rollup.config.js"
+    "build": "./scripts/build/build.sh"
   },
   "jest": {
     "setupFiles": [
