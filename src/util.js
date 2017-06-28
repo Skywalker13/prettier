@@ -218,6 +218,9 @@ function locStart(node) {
     return locStart(node.decorators[0]);
   }
 
+  if (node.__location) {
+    return node.__location.startOffset;
+  }
   if (node.range) {
     return node.range[0];
   }
@@ -227,9 +230,17 @@ function locStart(node) {
   if (node.source) {
     return lineColumnToIndex(node.source.start, node.source.input.css) - 1;
   }
+  if (node.loc) {
+    return node.loc.start;
+  }
 }
 
 function locEnd(node) {
+  const endNode = node.nodes && getLast(node.nodes);
+  if (endNode && node.source && !node.source.end) {
+    node = endNode;
+  }
+
   let loc;
   if (node.range) {
     loc = node.range[1];
@@ -239,9 +250,17 @@ function locEnd(node) {
     loc = lineColumnToIndex(node.source.end, node.source.input.css);
   }
 
+  if (node.__location) {
+    return node.__location.endOffset;
+  }
   if (node.typeAnnotation) {
     return Math.max(loc, locEnd(node.typeAnnotation));
   }
+
+  if (node.loc && !loc) {
+    return node.loc.end;
+  }
+
   return loc;
 }
 
@@ -301,6 +320,9 @@ function getPrecedence(op) {
 function startsWithNoLookaheadToken(node, forbidFunctionAndClass) {
   node = getLeftMost(node);
   switch (node.type) {
+    // Hack. Remove after https://github.com/eslint/typescript-eslint-parser/issues/331
+    case "ObjectPattern":
+      return !forbidFunctionAndClass;
     case "FunctionExpression":
     case "ClassExpression":
       return forbidFunctionAndClass;

@@ -51,7 +51,9 @@ function massageAST(ast) {
       "source",
       "before",
       "after",
-      "trailingComma"
+      "trailingComma",
+      "parent",
+      "prev"
     ].forEach(name => {
       delete newObj[name];
     });
@@ -70,6 +72,10 @@ function massageAST(ast) {
 
     if (ast.type === "media-feature") {
       newObj.value = newObj.value.replace(/ /g, "");
+    }
+
+    if (ast.type === "value-word" && ast.isColor && ast.isHex) {
+      newObj.value = newObj.value.toLowerCase();
     }
 
     // (TypeScript) Ignore `static` in `constructor(static p) {}`
@@ -96,11 +102,10 @@ function massageAST(ast) {
       delete newObj.specifiers;
     }
 
-    // (TypeScript) allow parenthesization of TSFunctionType
+    // (TypeScript) bypass TSParenthesizedType
     if (
       ast.type === "TSParenthesizedType" &&
-      ast.typeAnnotation.type === "TypeAnnotation" &&
-      ast.typeAnnotation.typeAnnotation.type === "TSFunctionType"
+      ast.typeAnnotation.type === "TypeAnnotation"
     ) {
       return newObj.typeAnnotation.typeAnnotation;
     }
@@ -126,6 +131,7 @@ function massageAST(ast) {
     }
 
     // Remove raw and cooked values from TemplateElement when it's CSS
+    // styled-jsx
     if (
       ast.type === "JSXElement" &&
       ast.openingElement.name.name === "style" &&
@@ -145,6 +151,15 @@ function massageAST(ast) {
       );
 
       quasis.forEach(q => delete q.value);
+    }
+    // styled-components and graphql
+    if (
+      ast.type === "TaggedTemplateExpression" &&
+      (ast.tag.type === "MemberExpression" ||
+        (ast.tag.type === "Identifier" &&
+          (ast.tag.name === "gql" || ast.tag.name === "graphql")))
+    ) {
+      newObj.quasi.quasis.forEach(quasi => delete quasi.value);
     }
 
     return newObj;

@@ -8,7 +8,7 @@ function parse(text) {
 
   const babylonOptions = {
     sourceType: "module",
-    allowImportExportEverywhere: false,
+    allowImportExportEverywhere: true,
     allowReturnOutsideFunction: true,
     plugins: [
       "jsx",
@@ -21,7 +21,8 @@ function parse(text) {
       "asyncGenerators",
       "functionBind",
       "functionSent",
-      "dynamicImport"
+      "dynamicImport",
+      "numericSeparator"
     ]
   };
 
@@ -30,7 +31,7 @@ function parse(text) {
     ast = babylon.parse(text, babylonOptions);
   } catch (originalError) {
     try {
-      return babylon.parse(
+      ast = babylon.parse(
         text,
         Object.assign({}, babylonOptions, { strictMode: false })
       );

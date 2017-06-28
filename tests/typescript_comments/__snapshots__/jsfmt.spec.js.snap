@@ -30,17 +30,9 @@ var example2 = <div>
 	/*test*/
 </div>;
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var example1 = (
-  <div>
-    https://test
-  </div>
-);
+var example1 = <div>https://test</div>;
 
-var example2 = (
-  <div>
-    /*test*/
-  </div>
-);
+var example2 = <div>/*test*/</div>;
 
 `;
 
@@ -121,6 +113,13 @@ export type WrappedFormUtils = {
     }
   ): (node: React.ReactNode) => React.ReactNode;
 };
+
+`;
+
+exports[`type-parameters.ts 1`] = `
+functionName<A /* A comment */>();
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+functionName<A /* A comment */>();
 
 `;
 
