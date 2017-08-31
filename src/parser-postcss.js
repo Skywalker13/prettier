@@ -205,11 +205,22 @@ function requireParser(isSCSS) {
   if (isSCSS) {
     return require("postcss-scss");
   }
+
+  // TODO: Remove this hack when this issue is fixed:
+  // https://github.com/shellscape/postcss-less/issues/88
+  const LessParser = require("postcss-less/dist/less-parser");
+  LessParser.prototype.atrule = function() {
+    return Object.getPrototypeOf(LessParser.prototype).atrule.apply(
+      this,
+      arguments
+    );
+  };
+
   return require("postcss-less");
 }
 
-function parse(text) {
-  const isLikelySCSS = !!text.match(/(\w\s*: [^}:]+|#){|\@import[^\n]+(url|,)/);
+function parse(text /*, parsers, opts*/) {
+  const isLikelySCSS = !!text.match(/(\w\s*: [^}:]+|#){|@import[^\n]+(url|,)/);
   try {
     return parseWithParser(requireParser(isLikelySCSS), text);
   } catch (e) {

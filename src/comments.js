@@ -81,10 +81,11 @@ function getSortedChildNodes(node, text, resultArray) {
 // least one of which is guaranteed to be defined.
 function decorateComment(node, comment, text) {
   const childNodes = getSortedChildNodes(node, text);
-  let precedingNode, followingNode;
+  let precedingNode;
+  let followingNode;
   // Time to dust off the old binary search robes and wizard hat.
-  let left = 0,
-    right = childNodes.length;
+  let left = 0;
+  let right = childNodes.length;
   while (left < right) {
     const middle = (left + right) >> 1;
     const child = childNodes[middle];
@@ -191,7 +192,12 @@ function attach(comments, ast, text) {
           comment
         ) ||
         handleTryStatementComments(enclosingNode, followingNode, comment) ||
-        handleClassComments(enclosingNode, comment) ||
+        handleClassComments(
+          enclosingNode,
+          precedingNode,
+          followingNode,
+          comment
+        ) ||
         handleImportSpecifierComments(enclosingNode, comment) ||
         handleObjectPropertyComments(enclosingNode, comment) ||
         handleForComments(enclosingNode, precedingNode, comment) ||
@@ -246,7 +252,12 @@ function attach(comments, ast, text) {
           followingNode,
           comment
         ) ||
-        handleClassComments(enclosingNode, comment) ||
+        handleClassComments(
+          enclosingNode,
+          precedingNode,
+          followingNode,
+          comment
+        ) ||
         handleLabeledStatementComments(enclosingNode, comment) ||
         handleCallExpressionComments(precedingNode, enclosingNode, comment) ||
         handlePropertyComments(enclosingNode, comment) ||
@@ -280,7 +291,7 @@ function attach(comments, ast, text) {
         ) ||
         handleObjectPropertyAssignment(enclosingNode, precedingNode, comment) ||
         handleCommentInEmptyParens(text, enclosingNode, comment) ||
-        handleMethodNameComments(enclosingNode, precedingNode, comment) ||
+        handleMethodNameComments(text, enclosingNode, precedingNode, comment) ||
         handleOnlyComments(enclosingNode, ast, comment, isLastComment)
       ) {
         // We're good
@@ -336,7 +347,8 @@ function breakTies(tiesToBreak, text) {
   // Iterate backwards through tiesToBreak, examining the gaps
   // between the tied comments. In order to qualify as leading, a
   // comment must be separated from followingNode by an unbroken series of
-  // whitespace-only gaps (or other comments).
+  // gaps (or other comments). Gaps should only contain whitespace or open
+  // parentheses.
   let indexOfFirstLeadingComment;
   for (
     indexOfFirstLeadingComment = tieCount;
@@ -347,13 +359,14 @@ function breakTies(tiesToBreak, text) {
     assert.strictEqual(comment.precedingNode, precedingNode);
     assert.strictEqual(comment.followingNode, followingNode);
 
-    const gap = text.slice(locEnd(comment), gapEndPos);
-    if (/\S/.test(gap)) {
-      // The gap string contained something other than whitespace.
+    const gap = text.slice(locEnd(comment), gapEndPos).trim();
+    if (gap === "" || /^\(+$/.test(gap)) {
+      gapEndPos = locStart(comment);
+    } else {
+      // The gap string contained something other than whitespace or open
+      // parentheses.
       break;
     }
-
-    gapEndPos = locStart(comment);
   }
 
   tiesToBreak.forEach((comment, i) => {
@@ -550,7 +563,33 @@ function handleObjectPropertyAssignment(enclosingNode, precedingNode, comment) {
   return false;
 }
 
-function handleMethodNameComments(enclosingNode, precedingNode, comment) {
+function handleClassComments(
+  enclosingNode,
+  precedingNode,
+  followingNode,
+  comment
+) {
+  if (
+    enclosingNode &&
+    (enclosingNode.type === "ClassDeclaration" ||
+      enclosingNode.type === "ClassExpression") &&
+    (enclosingNode.decorators && enclosingNode.decorators.length > 0) &&
+    !(followingNode && followingNode.type === "Decorator")
+  ) {
+    if (!enclosingNode.decorators || enclosingNode.decorators.length === 0) {
+      addLeadingComment(enclosingNode, comment);
+    } else {
+      addTrailingComment(
+        enclosingNode.decorators[enclosingNode.decorators.length - 1],
+        comment
+      );
+    }
+    return true;
+  }
+  return false;
+}
+
+function handleMethodNameComments(text, enclosingNode, precedingNode, comment) {
   // This is only needed for estree parsers (flow, typescript) to attach
   // after a method name:
   // obj = { fn /*comment*/() {} };
@@ -560,7 +599,10 @@ function handleMethodNameComments(enclosingNode, precedingNode, comment) {
     (enclosingNode.type === "Property" ||
       enclosingNode.type === "MethodDefinition") &&
     precedingNode.type === "Identifier" &&
-    enclosingNode.key === precedingNode
+    enclosingNode.key === precedingNode &&
+    // special Property case: { key: /*comment*/(value) };
+    // comment should be attached to value instead of key
+    getNextNonSpaceNonCommentCharacter(text, precedingNode) !== ":"
   ) {
     addTrailingComment(precedingNode, comment);
     return true;
@@ -634,18 +676,6 @@ function handleLastFunctionArgComments(
     getNextNonSpaceNonCommentCharacter(text, comment) === ")"
   ) {
     addTrailingComment(precedingNode, comment);
-    return true;
-  }
-  return false;
-}
-
-function handleClassComments(enclosingNode, comment) {
-  if (
-    enclosingNode &&
-    (enclosingNode.type === "ClassDeclaration" ||
-      enclosingNode.type === "ClassExpression")
-  ) {
-    addLeadingComment(enclosingNode, comment);
     return true;
   }
   return false;
@@ -830,7 +860,7 @@ function printComment(commentPath, options) {
 
   switch (comment.type || comment.kind) {
     case "Comment":
-      return "#" + comment.value;
+      return "#" + comment.value.trimRight();
     case "CommentBlock":
     case "Block":
       return "/*" + comment.value + "*/";
@@ -838,9 +868,9 @@ function printComment(commentPath, options) {
     case "Line":
       // Print shebangs with the proper comment characters
       if (options.originalText.slice(util.locStart(comment)).startsWith("#!")) {
-        return "#!" + comment.value;
+        return "#!" + comment.value.trimRight();
       }
-      return "//" + comment.value;
+      return "//" + comment.value.trimRight();
     default:
       throw new Error("Not a comment: " + JSON.stringify(comment));
   }

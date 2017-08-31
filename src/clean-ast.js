@@ -70,12 +70,48 @@ function massageAST(ast) {
       delete newObj.params;
     }
 
+    if (ast.type === "selector-combinator") {
+      newObj.value = newObj.value.replace(/\s+/g, " ");
+    }
+
     if (ast.type === "media-feature") {
       newObj.value = newObj.value.replace(/ /g, "");
     }
 
     if (ast.type === "value-word" && ast.isColor && ast.isHex) {
       newObj.value = newObj.value.toLowerCase();
+    }
+
+    if (
+      (ast.type === "media-feature" ||
+        ast.type === "media-type" ||
+        ast.type === "media-unknown" ||
+        ast.type === "media-value" ||
+        ast.type === "selector-attribute" ||
+        ast.type === "selector-string" ||
+        ast.type === "value-string") &&
+      newObj.value
+    ) {
+      newObj.value = cleanCSSStrings(newObj.value);
+    }
+
+    if (ast.type === "css-import" && newObj.importPath) {
+      newObj.importPath = cleanCSSStrings(newObj.importPath);
+    }
+
+    if (ast.type === "selector-attribute" && newObj.value) {
+      newObj.value = newObj.value.replace(/^['"]|['"]$/g, "");
+      delete newObj.quoted;
+    }
+
+    if (
+      (ast.type === "media-value" || ast.type === "value-number") &&
+      newObj.value
+    ) {
+      newObj.value = newObj.value.replace(/[\d.eE+-]+/g, match => {
+        const num = Number(match);
+        return isNaN(num) ? match : num;
+      });
     }
 
     // (TypeScript) Ignore `static` in `constructor(static p) {}`
@@ -122,7 +158,9 @@ function massageAST(ast) {
     if (
       (ast.type === "Property" ||
         ast.type === "MethodDefinition" ||
-        ast.type === "ClassProperty") &&
+        ast.type === "ClassProperty" ||
+        ast.type === "TSPropertySignature" ||
+        ast.type === "ObjectTypeProperty") &&
       typeof ast.key === "object" &&
       ast.key &&
       (ast.key.type === "Literal" || ast.key.type === "Identifier")
@@ -157,7 +195,10 @@ function massageAST(ast) {
       ast.type === "TaggedTemplateExpression" &&
       (ast.tag.type === "MemberExpression" ||
         (ast.tag.type === "Identifier" &&
-          (ast.tag.name === "gql" || ast.tag.name === "graphql")))
+          (ast.tag.name === "gql" ||
+            ast.tag.name === "graphql" ||
+            ast.tag.name === "css")) ||
+        ast.tag.type === "CallExpression")
     ) {
       newObj.quasi.quasis.forEach(quasi => delete quasi.value);
     }
@@ -165,6 +206,10 @@ function massageAST(ast) {
     return newObj;
   }
   return ast;
+}
+
+function cleanCSSStrings(value) {
+  return value.replace(/'/g, '"').replace(/\\([^a-fA-F\d])/g, "$1");
 }
 
 module.exports = { cleanAST, massageAST };

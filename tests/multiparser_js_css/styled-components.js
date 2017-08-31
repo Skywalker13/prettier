@@ -11,3 +11,10 @@ border-color : tomato
     ;
 
 `;
+
+styled(ExistingComponent)`
+       color : papayawhip ; background-color: firebrick`;
+
+
+styled.button.attr({})`
+border : rebeccapurple`;

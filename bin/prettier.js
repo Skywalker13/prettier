@@ -2,26 +2,43 @@
 
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
-const getStream = require("get-stream");
-const glob = require("glob");
 const chalk = require("chalk");
+const dashify = require("dashify");
+const fs = require("fs");
+const getStream = require("get-stream");
+const globby = require("globby");
 const minimist = require("minimist");
+const path = require("path");
 const readline = require("readline");
-const prettier = eval("require")("../index");
-const cleanAST = require("../src/clean-ast.js").cleanAST;
+const ignore = require("ignore");
 
-const argv = minimist(process.argv.slice(2), {
+const prettier = eval("require")("../index");
+const cleanAST = require("../src/clean-ast").cleanAST;
+const resolver = require("../src/resolve-config");
+
+const args = process.argv.slice(2);
+
+const booleanOptionNames = [
+  "use-tabs",
+  "semi",
+  "single-quote",
+  "bracket-spacing",
+  "jsx-bracket-same-line",
+  "parenthesis-space",
+  // Deprecated in 0.0.10
+  "flow-parser"
+];
+const stringOptionNames = [
+  "print-width",
+  "tab-width",
+  "parser",
+  "trailing-comma"
+];
+
+const argv = minimist(args, {
   boolean: [
     "write",
     "stdin",
-    "use-tabs",
-    "semi",
-    "single-quote",
-    "bracket-spacing",
-    "jsx-bracket-same-line",
-    "parenthesis-space",
     // The supports-color package (a sub sub dependency) looks directly at
     // `process.argv` for `--no-color` and such-like options. The reason it is
     // listed here is to avoid "Ignored unknown option: --no-color" warnings.
@@ -32,27 +49,26 @@ const argv = minimist(process.argv.slice(2), {
     "version",
     "debug-print-doc",
     "debug-check",
-    "with-node-modules",
-    // Deprecated in 0.0.10
-    "flow-parser"
-  ],
+    "with-node-modules"
+  ].concat(booleanOptionNames),
   string: [
-    "print-width",
-    "tab-width",
-    "parser",
-    "trailing-comma",
     "cursor-offset",
     "range-start",
     "range-end",
-    "stdin-filepath"
-  ],
+    "stdin-filepath",
+    "config",
+    "find-config-path",
+    "ignore-path"
+  ].concat(stringOptionNames),
   default: {
-    semi: true,
     color: true,
-    "bracket-spacing": true,
-    parser: "babylon"
+    "ignore-path": ".prettierignore"
   },
-  alias: { help: "h", version: "v", "list-different": "l" },
+  alias: {
+    help: "h",
+    version: "v",
+    "list-different": "l"
+  },
   unknown: param => {
     if (param.startsWith("-")) {
       console.warn("Ignored unknown option: " + param + "\n");
@@ -70,8 +86,9 @@ const filepatterns = argv["_"];
 const write = argv["write"];
 const stdin = argv["stdin"] || (!filepatterns.length && !process.stdin.isTTY);
 const ignoreNodeModules = argv["with-node-modules"] === false;
+const ignoreNodeModulesGlobs = ["!**/node_modules/**", "!./node_modules/**"];
+const ignorePath = argv["ignore-path"];
 const globOptions = {
-  ignore: ignoreNodeModules && ["**/node_modules/**", "./node_modules/**"],
   dot: true
 };
 
@@ -80,9 +97,60 @@ if (write && argv["debug-check"]) {
   process.exit(1);
 }
 
-function getParserOption() {
-  const optionName = "parser";
-  const value = argv[optionName];
+if (argv["find-config-path"] && filepatterns.length) {
+  console.error("Cannot use --find-config-path with multiple files");
+  process.exit(1);
+}
+
+function getOptionsForFile(filePath) {
+  const optionsPromise =
+    argv["config"] === false
+      ? Promise.resolve(null)
+      : resolver.resolveConfig(filePath);
+
+  return optionsPromise
+    .then(options => {
+      const parsedArgs = minimist(args, {
+        boolean: booleanOptionNames,
+        string: stringOptionNames,
+        default: Object.assign(
+          {
+            semi: true,
+            "bracket-spacing": true,
+            parser: "babylon"
+          },
+          dashifyObject(options)
+        )
+      });
+
+      return getOptions(Object.assign({}, argv, parsedArgs));
+    })
+    .catch(error => {
+      console.error("Invalid configuration file:", error.toString());
+      process.exit(2);
+    });
+}
+
+function getOptions(argv) {
+  return {
+    cursorOffset: getIntOption(argv, "cursor-offset"),
+    rangeStart: getIntOption(argv, "range-start"),
+    rangeEnd: getIntOption(argv, "range-end"),
+    useTabs: argv["use-tabs"],
+    semi: argv["semi"],
+    printWidth: getIntOption(argv, "print-width"),
+    tabWidth: getIntOption(argv, "tab-width"),
+    bracketSpacing: argv["bracket-spacing"],
+    singleQuote: argv["single-quote"],
+    jsxBracketSameLine: argv["jsx-bracket-same-line"],
+    filepath: argv["stdin-filepath"],
+    trailingComma: getTrailingComma(argv),
+    parser: getParserOption(argv)
+  };
+}
+
+function getParserOption(argv) {
+  const value = argv.parser;
 
   if (value === undefined) {
     return value;
@@ -97,7 +165,7 @@ function getParserOption() {
   return value;
 }
 
-function getIntOption(optionName) {
+function getIntOption(argv, optionName) {
   const value = argv[optionName];
 
   if (value === undefined) {
@@ -117,7 +185,7 @@ function getIntOption(optionName) {
   process.exit(1);
 }
 
-function getTrailingComma() {
+function getTrailingComma(argv) {
   switch (argv["trailing-comma"]) {
     case undefined:
     case "none":
@@ -137,36 +205,26 @@ function getTrailingComma() {
   }
 }
 
-const options = {
-  cursorOffset: getIntOption("cursor-offset"),
-  rangeStart: getIntOption("range-start"),
-  rangeEnd: getIntOption("range-end"),
-  useTabs: argv["use-tabs"],
-  semi: argv["semi"],
-  printWidth: getIntOption("print-width"),
-  tabWidth: getIntOption("tab-width"),
-  bracketSpacing: argv["bracket-spacing"],
-  singleQuote: argv["single-quote"],
-  jsxBracketSameLine: argv["jsx-bracket-same-line"],
-  parenthesisSpace: argv["parenthesis-space"],
-  filepath: argv["stdin-filepath"],
-  trailingComma: getTrailingComma(),
-  parser: getParserOption()
-};
+function dashifyObject(object) {
+  return Object.keys(object || {}).reduce((output, key) => {
+    output[dashify(key)] = object[key];
+    return output;
+  }, {});
+}
+
+function diff(a, b) {
+  return require("diff").createTwoFilesPatch("", "", a, b, "", "", {
+    context: 2
+  });
+}
 
 function format(input, opt) {
   if (argv["debug-print-doc"]) {
     const doc = prettier.__debug.printToDoc(input, opt);
-    return prettier.__debug.formatDoc(doc);
+    return { formatted: prettier.__debug.formatDoc(doc) };
   }
 
   if (argv["debug-check"]) {
-    function diff(a, b) {
-      return require("diff").createTwoFilesPatch("", "", a, b, "", "", {
-        context: 2
-      });
-    }
-
     const pp = prettier.format(input, opt);
     const pppp = prettier.format(pp, opt);
     if (pp !== pppp) {
@@ -177,9 +235,10 @@ function format(input, opt) {
 
       if (ast !== past) {
         const MAX_AST_SIZE = 2097152; // 2MB
-        const astDiff = ast.length > MAX_AST_SIZE || past.length > MAX_AST_SIZE
-          ? "AST diff too large to render"
-          : diff(ast, past);
+        const astDiff =
+          ast.length > MAX_AST_SIZE || past.length > MAX_AST_SIZE
+            ? "AST diff too large to render"
+            : diff(ast, past);
         throw "ast(input) !== ast(prettier(input))\n" +
           astDiff +
           "\n" +
@@ -216,12 +275,21 @@ function handleError(filename, e) {
   process.exitCode = 2;
 }
 
-if (argv["help"] || (!filepatterns.length && !stdin)) {
+if (
+  argv["help"] ||
+  (!filepatterns.length && !stdin && !argv["find-config-path"])
+) {
   console.log(
     "Usage: prettier [opts] [filename ...]\n\n" +
       "Available options:\n" +
       "  --write                  Edit the file in-place. (Beware!)\n" +
       "  --list-different or -l   Print filenames of files that are different from Prettier formatting.\n" +
+      "  --config                 Path to a prettier configuration file (.prettierrc, package.json, prettier.config.js).\n" +
+      "  --no-config              Do not look for a configuration file.\n" +
+      "  --find-config-path <path>\n" +
+      "                           Finds and prints the path to a configuration file for a given input file.\n" +
+      "  --ignore-path <path>     Path to a file containing patterns that describe files to ignore.\n" +
+      "                           Defaults to ./.prettierignore.\n" +
       "  --stdin                  Read input from stdin.\n" +
       "  --stdin-filepath         Path to the file used to read from stdin.\n" +
       "  --print-width <int>      Specify the length of line that the printer will wrap on. Defaults to 80.\n" +
@@ -233,8 +301,8 @@ if (argv["help"] || (!filepatterns.length && !stdin)) {
       "  --jsx-bracket-same-line  Put > on the last line instead of at a new line.\n" +
       "  --parenthesis-space      Put a space before every parenthesis.\n" +
       "  --trailing-comma <none|es5|all>\n" +
-      "                           Print trailing commas wherever possible. Defaults to none.\n" +
-      "  --parser <flow|babylon|typescript|postcss|json>\n" +
+      "                           Print trailing commas wherever possible when multi-line. Defaults to none.\n" +
+      "  --parser <flow|babylon|typescript|postcss|json|graphql>\n" +
       "                           Specify which parse to use. Defaults to babylon.\n" +
       "  --cursor-offset <int>    Print (to stderr) where a cursor at the given position would move to after formatting.\n" +
       "                           This option cannot be used with --range-start and --range-end\n" +
@@ -254,17 +322,24 @@ if (argv["help"] || (!filepatterns.length && !stdin)) {
   process.exit(argv["help"] ? 0 : 1);
 }
 
-if (stdin) {
+if (argv["find-config-path"]) {
+  resolveConfig(argv["find-config-path"]);
+} else if (stdin) {
   getStream(process.stdin).then(input => {
-    try {
-      writeOutput(format(input, options));
-    } catch (e) {
-      handleError("stdin", e);
-      return;
-    }
+    getOptionsForFile(process.cwd()).then(options => {
+      if (listDifferent(input, options, "(stdin)")) {
+        return;
+      }
+
+      try {
+        writeOutput(format(input, options), options);
+      } catch (e) {
+        handleError("stdin", e);
+      }
+    });
   });
 } else {
-  eachFilename(filepatterns, filename => {
+  eachFilename(filepatterns, (filename, options) => {
     if (write) {
       // Don't use `console.log` here since we need to replace this line.
       process.stdout.write(filename);
@@ -283,19 +358,7 @@ if (stdin) {
       return;
     }
 
-    if (argv["list-different"]) {
-      if (
-        !prettier.check(
-          input,
-          Object.assign({}, options, { filepath: filename })
-        )
-      ) {
-        if (!write) {
-          console.log(filename);
-        }
-        process.exitCode = 1;
-      }
-    }
+    listDifferent(input, options, filename);
 
     const start = Date.now();
 
@@ -349,12 +412,39 @@ if (stdin) {
         process.exitCode = 2;
       }
     } else if (!argv["list-different"]) {
-      writeOutput(result);
+      writeOutput(result, options);
     }
   });
 }
 
-function writeOutput(result) {
+function listDifferent(input, options, filename) {
+  if (!argv["list-different"]) {
+    return;
+  }
+
+  options = Object.assign({}, options, { filepath: filename });
+
+  if (!prettier.check(input, options)) {
+    if (!write) {
+      console.log(filename);
+    }
+    process.exitCode = 1;
+  }
+
+  return true;
+}
+
+function resolveConfig(filePath) {
+  resolver.resolveConfigFile(filePath).then(configFile => {
+    if (configFile) {
+      console.log(path.relative(process.cwd(), configFile));
+    } else {
+      process.exitCode = 1;
+    }
+  });
+}
+
+function writeOutput(result, options) {
   // Don't use `console.log` here since it adds an extra newline at the end.
   process.stdout.write(result.formatted);
 
@@ -364,30 +454,60 @@ function writeOutput(result) {
 }
 
 function eachFilename(patterns, callback) {
-  patterns.forEach(pattern => {
-    if (!glob.hasMagic(pattern)) {
-      if (shouldIgnorePattern(pattern)) {
-        return;
-      }
-      callback(pattern);
-      return;
-    }
+  // The ignorer will be used to filter file paths after the glob is checked,
+  // before any files are actually read
+  const ignoreFilePath = path.resolve(ignorePath);
+  let ignoreText = "";
 
-    glob(pattern, globOptions, (err, filenames) => {
-      if (err) {
-        console.error("Unable to expand glob pattern: " + pattern + "\n" + err);
-        // Don't exit the process if one pattern failed
+  try {
+    ignoreText = fs.readFileSync(ignoreFilePath, "utf8");
+  } catch (readError) {
+    if (readError.code !== "ENOENT") {
+      console.error(`Unable to read ${ignoreFilePath}:`, readError);
+      process.exit(2);
+    }
+  }
+
+  const ignorer = ignore().add(ignoreText);
+
+  if (ignoreNodeModules) {
+    patterns = patterns.concat(ignoreNodeModulesGlobs);
+  }
+
+  return globby(patterns, globOptions)
+    .then(filePaths => {
+      if (filePaths.length === 0) {
+        console.error(
+          "No matching files. Patterns tried: " + patterns.join(" ")
+        );
         process.exitCode = 2;
         return;
       }
-
-      filenames.forEach(filename => {
-        callback(filename);
+      // Use map series to ensure idempotency
+      mapSeries(ignorer.filter(filePaths), filePath => {
+        return getOptionsForFile(filePath).then(options =>
+          callback(filePath, options)
+        );
       });
+    })
+    .catch(err => {
+      console.error(
+        "Unable to expand glob patterns: " + patterns.join(" ") + "\n" + err
+      );
+      // Don't exit the process if one pattern failed
+      process.exitCode = 2;
     });
-  });
 }
 
-function shouldIgnorePattern(pattern) {
-  return ignoreNodeModules && path.resolve(pattern).includes("/node_modules/");
+function mapSeries(array, iteratee) {
+  let current = Promise.resolve();
+
+  const promises = array.map((item, i) => {
+    current = current.then(() => {
+      return iteratee(item, i, array);
+    });
+    return current;
+  });
+
+  return Promise.all(promises);
 }

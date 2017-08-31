@@ -19,6 +19,21 @@ function f() {
 
 `;
 
+exports[`bitwise-flags.js 1`] = `
+const FLAG_A = 1 << 0;
+const FLAG_B = 1 << 1;
+const FLAG_C = 1 << 2;
+
+const all = FLAG_A | FLAG_B | FLAG_C;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+const FLAG_A = 1 << 0;
+const FLAG_B = 1 << 1;
+const FLAG_C = 1 << 2;
+
+const all = FLAG_A | FLAG_B | FLAG_C;
+
+`;
+
 exports[`comment.js 1`] = `
 a = (
   // Commment 1
@@ -34,6 +49,29 @@ a =
 
 `;
 
+exports[`equality.js 1`] = `
+x == y == z;
+x != y == z;
+x == y != z;
+x != y != z;
+
+x === y === z;
+x !== y === z;
+x === y !== z;
+x !== y !== z;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(x == y) == z;
+(x != y) == z;
+(x == y) != z;
+(x != y) != z;
+
+(x === y) === z;
+(x !== y) === z;
+(x === y) !== z;
+(x !== y) !== z;
+
+`;
+
 exports[`exp.js 1`] = `
 a ** b ** c;
 (a ** b) ** c;
@@ -44,7 +82,7 @@ a ** -b;
 (a * b) ** c;
 a ** (b * c);
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-a ** b ** c;
+a ** (b ** c);
 (a ** b) ** c;
 a.b ** c;
 (-a) ** b;
@@ -148,6 +186,55 @@ exports[`jsx_parent.js 1`] = `
     diffUpdateMessageInput != null &&
     this.state.isUpdateMessageEmpty}
 </div>;
+
+`;
+
+exports[`math.js 1`] = `
+x + y / z;
+x / y + z;
+
+x * y % z;
+x / y % z;
+x % y * z;
+x % y / z;
+
+x % y % z;
+
+x << y >> z;
+x >>> y << z;
+x >>> y >>> z;
+x + y >> z;
+
+x | y & z;
+x & y | z;
+x ^ y ^ z;
+x & y & z;
+x | y | z;
+x & y >> z;
+x << y | z;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+x + y / z;
+x / y + z;
+
+(x * y) % z;
+(x / y) % z;
+(x % y) * z;
+(x % y) / z;
+
+(x % y) % z;
+
+(x << y) >> z;
+(x >>> y) << z;
+(x >>> y) >>> z;
+(x + y) >> z;
+
+x | (y & z);
+(x & y) | z;
+x ^ y ^ z;
+x & y & z;
+x | y | z;
+x & (y >> z);
+(x << y) | z;
 
 `;
 
