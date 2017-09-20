@@ -10,7 +10,7 @@ my_function ();
 ## Why ? it's not common...
 
 I know but code without spaces looks ugly for me. Why adding a space before a
-`if ()`, `while ()` and not before a function call? If you doesn't like spaces,
+`if ()`, `while ()` and not before a function call? If you don't like spaces,
 you should write `if()` and `while()`.
 
 ## Options
