@@ -1,3 +1,5 @@
+**/!\ NOT MAINTAINED ANYMORE /!\**
+
 # Prettier space parenthesis
 
 It's a fork of Prettier that can add a space before all parenthesis
