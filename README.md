@@ -1,4 +1,4 @@
-**/!\ NOT MAINTAINED ANYMORE /!\**
+/!\ **NOT MAINTAINED ANYMORE** /!\
 
 # Prettier space parenthesis
 
